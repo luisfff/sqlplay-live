@@ -1,0 +1,15 @@
+# dependencies
+node_modules
+
+# build output (regenerate with: npm run build:all)
+dist
+dist-lib
+
+# tooling caches
+.vite
+*.tsbuildinfo
+
+# local artifacts
+*.log
+*.sqlite
+.DS_Store

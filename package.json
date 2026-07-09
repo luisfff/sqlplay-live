@@ -1,0 +1,92 @@
+{
+  "name": "sqlplay",
+  "version": "0.1.0",
+  "description": "An H2-Console-style SQL playground for JavaScript. Practice SQL in a real in-memory SQLite database that runs 100% in your browser — zero backend, zero setup.",
+  "type": "module",
+  "bin": {
+    "sqlplay": "bin/cli.mjs"
+  },
+  "main": "./dist-lib/index.cjs",
+  "module": "./dist-lib/index.js",
+  "types": "./dist-lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist-lib/index.d.ts",
+      "import": "./dist-lib/index.js",
+      "require": "./dist-lib/index.cjs"
+    },
+    "./react": {
+      "types": "./dist-lib/react.d.ts",
+      "import": "./dist-lib/react.js",
+      "require": "./dist-lib/react.cjs"
+    },
+    "./server": {
+      "types": "./dist-lib/server.d.ts",
+      "import": "./dist-lib/server.js",
+      "require": "./dist-lib/server.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "react": ">=17",
+    "react-dom": ">=17"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "files": [
+    "dist",
+    "dist-lib",
+    "bin"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:lib": "tsup",
+    "build:all": "npm run build && npm run build:lib",
+    "preview": "vite preview",
+    "start": "node bin/cli.mjs",
+    "docs:er": "node scripts/gen-er-svg.mjs",
+    "test:e2e": "node e2e.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "sql",
+    "sqlite",
+    "h2",
+    "console",
+    "playground",
+    "in-memory",
+    "database",
+    "practice",
+    "learn-sql",
+    "sql.js",
+    "wasm"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "sql.js": "^1.12.0"
+  },
+  "devDependencies": {
+    "@codemirror/lang-sql": "^6.8.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/sql.js": "^1.4.9",
+    "@uiw/react-codemirror": "^4.23.7",
+    "@vitejs/plugin-react": "^4.3.4",
+    "playwright": "^1.61.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  }
+}
