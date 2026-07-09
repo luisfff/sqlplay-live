@@ -3,14 +3,91 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SQLPlay — SQL Console</title>
+
+    <title>SQLPlay — In-Browser SQL Playground &amp; Practice Console</title>
     <meta
       name="description"
-      content="Practice SQL in a real in-memory SQLite database, right in your browser."
+      content="Practice SQL in a real in-memory SQLite database that runs 100% in your browser. 50 graded challenges, auto-generated ER diagrams, CSV/JSON import, an editable data grid — zero setup, fully offline."
     />
+    <meta
+      name="keywords"
+      content="SQL, SQLite, SQL practice, SQL playground, SQL editor online, in-memory database, H2 console alternative, learn SQL, SQL challenges, WebAssembly, sql.js"
+    />
+    <meta name="author" content="Yogesh Chauhan" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="canonical" href="https://sqlplay.vercel.app/" />
+
+    <!-- Icons -->
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./favicon.svg" />
+
+    <!-- Open Graph (link previews). Crawlers require ABSOLUTE URLs here. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SQLPlay" />
+    <meta property="og:url" content="https://sqlplay.vercel.app/" />
+    <meta
+      property="og:title"
+      content="SQLPlay — In-Browser SQL Playground &amp; Practice Console"
+    />
+    <meta
+      property="og:description"
+      content="A real SQLite database in your browser. 50 graded SQL challenges, ER diagrams, CSV import — no server, no setup, fully offline."
+    />
+    <meta
+      property="og:image"
+      content="https://sqlplay.vercel.app/og-image.png"
+    />
+    <meta property="og:image:width" content="1280" />
+    <meta property="og:image:height" content="720" />
+    <meta
+      property="og:image:alt"
+      content="The SQLPlay console showing a SQL query and its result table."
+    />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="SQLPlay — In-Browser SQL Playground &amp; Practice Console"
+    />
+    <meta
+      name="twitter:description"
+      content="A real SQLite database in your browser. 50 graded SQL challenges, ER diagrams, CSV import — no server, no setup, fully offline."
+    />
+    <meta
+      name="twitter:image"
+      content="https://sqlplay.vercel.app/og-image.png"
+    />
+
+    <!-- Structured data -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "SQLPlay",
+        "url": "https://sqlplay.vercel.app/",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any (browser)",
+        "description": "An H2-Console-style SQL playground for JavaScript. Practice SQL against a real in-memory SQLite database that runs entirely in the browser.",
+        "screenshot": "https://sqlplay.vercel.app/og-image.png",
+        "license": "https://opensource.org/licenses/MIT",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "author": {
+          "@type": "Person",
+          "name": "Yogesh Chauhan",
+          "url": "https://github.com/Yogesh0627",
+          "sameAs": [
+            "https://github.com/Yogesh0627",
+            "https://www.linkedin.com/in/yogeshchauhan-dev/"
+          ]
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>SQLPlay requires JavaScript to run SQLite in your browser.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

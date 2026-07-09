@@ -2,6 +2,21 @@
   "name": "sqlplay",
   "version": "0.1.0",
   "description": "An H2-Console-style SQL playground for JavaScript. Practice SQL in a real in-memory SQLite database that runs 100% in your browser — zero backend, zero setup.",
+  "author": {
+    "name": "Yogesh Chauhan",
+    "url": "https://github.com/Yogesh0627"
+  },
+  "contributors": [
+    "Yogesh Chauhan (https://www.linkedin.com/in/yogeshchauhan-dev/)"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yogesh0627/sqlplay.git"
+  },
+  "homepage": "https://sqlplay.vercel.app/",
+  "bugs": {
+    "url": "https://github.com/Yogesh0627/sqlplay/issues"
+  },
   "type": "module",
   "bin": {
     "sqlplay": "bin/cli.mjs"
@@ -56,7 +71,8 @@
     "start": "node bin/cli.mjs",
     "docs:er": "node scripts/gen-er-svg.mjs",
     "test:e2e": "node e2e.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build:all"
   },
   "keywords": [
     "sql",

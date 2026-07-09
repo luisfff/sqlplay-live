@@ -481,7 +481,30 @@ export default function App() {
         </main>
       </div>
 
-      <footer className="statusbar">{status}</footer>
+      <footer className="statusbar">
+        <span className="status-text" title={status}>
+          {status}
+        </span>
+        <span className="footer-credit">
+          Built by <strong>Yogesh Chauhan</strong>
+          <span className="sep">·</span>
+          <a
+            href="https://www.linkedin.com/in/yogeshchauhan-dev/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            LinkedIn
+          </a>
+          <span className="sep">·</span>
+          <a
+            href="https://github.com/Yogesh0627"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>
+        </span>
+      </footer>
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
     </div>
