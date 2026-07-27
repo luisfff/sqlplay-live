@@ -61,14 +61,26 @@ type Next = (err?: unknown) => void;
 const WRITE_KW =
   /\b(insert|update|delete|drop|create|alter|replace|attach|detach|reindex|vacuum|truncate)\b/i;
 
+// PRAGMAs that change state even though they don't match WRITE_KW. A read
+// PRAGMA is `PRAGMA x` or `PRAGMA x(args)`; an assignment `PRAGMA x = y` and
+// these function-pragmas mutate, so they must not pass the read-only guard.
+const MUTATING_PRAGMA =
+  /^\s*pragma\s+(optimize|wal_checkpoint|incremental_vacuum|shrink_memory|writable_schema|secure_delete|journal_mode|auto_vacuum|user_version|application_id|schema_version)\b/i;
+
 /**
- * A statement is treated as read-only if it starts with SELECT/PRAGMA/EXPLAIN,
- * or is a CTE (`WITH …`) whose body contains no data-modifying keyword — so
- * `WITH x AS (…) DELETE …` is correctly rejected. This is a pragmatic guard,
- * not a hardened SQL parser: still mount the console behind auth in production.
+ * A statement is treated as read-only if it starts with SELECT/EXPLAIN, is a
+ * non-assigning read PRAGMA, or is a CTE (`WITH …`) whose body contains no
+ * data-modifying keyword — so `WITH x AS (…) DELETE …` is correctly rejected.
+ * This is a pragmatic guard, not a hardened SQL parser, and it does NOT bound
+ * query cost: still mount the console behind auth in production.
  */
 function isReadOnlyStatement(stmt: string): boolean {
-  if (/^\s*(select|pragma|explain)\b/i.test(stmt)) return true;
+  if (/^\s*(select|explain)\b/i.test(stmt)) return true;
+  if (/^\s*pragma\b/i.test(stmt)) {
+    // Reject value assignments (`PRAGMA x = y`) and known mutating pragmas;
+    // allow bare introspection reads (table_info, foreign_key_list, …).
+    return !/=/.test(stmt) && !MUTATING_PRAGMA.test(stmt);
+  }
   if (/^\s*with\b/i.test(stmt) && !WRITE_KW.test(stmt)) return true;
   return false;
 }

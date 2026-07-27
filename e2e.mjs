@@ -17,7 +17,11 @@ await sleep(1500);
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
-page.on("pageerror", (e) => console.log("  [pageerror]", e.message));
+const pageErrors = [];
+page.on("pageerror", (e) => {
+  pageErrors.push(e.message);
+  console.log("  [pageerror]", e.message);
+});
 
 try {
   await page.goto(BASE, { waitUntil: "networkidle" });
@@ -57,6 +61,26 @@ try {
   await firstInput.press("Enter");
   await sleep(300);
   ok("Data editor cell edit committed (no crash)");
+
+  // --- Regression: switching dataset while the Data editor tab is open must
+  //     not crash the app. The editor still referenced the previous dataset's
+  //     table, whose load() threw "no such table" and unmounted the whole tree
+  //     (blank page) before load() was wrapped in try/catch. ---
+  const errorsBeforeSwitch = pageErrors.length;
+  await page.locator(".controls select").selectOption("shop");
+  await sleep(500);
+  const appAlive = (await page.locator(".app").count()) > 0;
+  const editorAlive = (await page.locator(".data-editor").count()) > 0;
+  const pickerText = await page.locator(".data-toolbar select").innerText().catch(() => "");
+  const noNewErrors = pageErrors.length === errorsBeforeSwitch;
+  appAlive && editorAlive && noNewErrors && /customers/.test(pickerText)
+    ? ok("Dataset switch on Data editor tab does not crash")
+    : no(
+        "Dataset switch on Data editor tab",
+        `appAlive=${appAlive} editorAlive=${editorAlive} newErrors=${pageErrors
+          .slice(errorsBeforeSwitch)
+          .join("|")} picker="${pickerText.slice(0, 40)}"`
+      );
 
   // --- Create + save a user dataset, then verify persistence across reload ---
   await page.getByRole("button", { name: "Results" }).click();

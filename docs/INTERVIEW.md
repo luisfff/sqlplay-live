@@ -143,15 +143,47 @@ binary is bundled.
 
 ## 5. Edge cases I handled (great to volunteer — shows rigor)
 
-**Read-only guard bypass (a real security bug I found and fixed).**
+**Read-only guard bypass (a real security bug I found and fixed — twice).**
 The naive check "does the query start with SELECT?" is exploitable:
 `SELECT 1; DROP TABLE users;` passes it, and `WITH x AS (…) DELETE …` starts with
 a read keyword too. I fixed it by splitting the script into statements and
 checking **each** one, and allowing `WITH` only when its body has no
-data-modifying keyword. I verified with attack cases (multi-statement DROP,
-`WITH…DELETE`, bare `UPDATE`) returning 403 while `WITH…SELECT` and `SELECT`
-return 200. I'm also honest that it's a pragmatic guard, not a full parser — so
-the console should still be behind auth.
+data-modifying keyword. A later adversarial audit found a **second** class of
+bypass: the guard blanket-allowed anything starting with `PRAGMA`, but
+`PRAGMA user_version = N` and `PRAGMA optimize` **mutate** — I reproduced the
+write taking effect under `readOnly:true` (`user_version` became 7). I tightened
+the rule to reject assigning/mutating pragmas while still allowing introspection
+reads like `PRAGMA table_info`. I'm honest that it's a pragmatic guard, not a full
+parser — so the console should still be behind auth. (Full write-up:
+[BUGREPORT.md](BUGREPORT.md) §2.)
+
+**No statement timeout → a runaway query is a DoS (found, documented, fix scoped).**
+`sql.js` executes **synchronously**. In server mode a single allowed read query —
+`WITH RECURSIVE r(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM r) SELECT n FROM r` —
+never terminates and **blocks the entire Node event loop**; I proved it with a
+2-second in-process watchdog that never fired because the loop was blocked. The
+right fix is to run the engine in a worker (Web Worker / `worker_threads`) with a
+wall-clock timeout that can terminate it. I scoped it rather than hand-waving it.
+
+**Second-order SQL injection via CSV import (found and fixed).**
+The CSV type-inferrer returned `REAL` on the *first* decimal it saw without
+checking the rest of the column, and numeric-typed values were emitted
+**unquoted**. So a column like `[1.5, "0); DROP TABLE students;--"]` built an
+`INSERT` that, once split on the injected `;`, executed the `DROP`. I proved it
+end-to-end (the victim table was dropped by an imported file), then fixed it two
+ways: infer `TEXT` if *any* value is non-numeric, and quote defensively unless a
+value strictly matches a numeric literal. JSON import didn't have the bug (it
+types the mixed column `TEXT`), which is a nice illustration of why the CSV path
+specifically failed. Lesson: **type inference is a security boundary when it
+decides whether to quote.**
+
+**A crash that blanked the whole app (found, fixed, regression-tested).**
+Switching datasets while the Data-editor tab was open made the editor query a
+table that no longer existed; the throw escaped a React effect and — with no error
+boundary — unmounted the entire tree to a blank page. I wrapped the load in
+try/catch, added a top-level `ErrorBoundary` so any future render fault degrades
+to a recoverable message, and added an e2e regression test. I verified the test
+genuinely guards it: reverting the fix makes it fail.
 
 **Statement splitting.** Splitting on `;` naively breaks on semicolons inside
 string literals or comments. I wrote a scanner that tracks quote and comment
@@ -199,8 +231,10 @@ library builds — a reminder that bundler defaults are load-bearing.
 - **Embed WASM in the library** → zero-config for consumers, at ~860 KB per
   bundle. Right call for a dev tool; I'd offer an opt-out slim build if size
   mattered.
-- **Keyword-based read-only guard** → simple and good enough for a dev tool; a
-  hardened version would use a real SQL parser.
+- **Keyword-based read-only guard** → simple and good enough for a dev tool; I
+  tightened it twice (multi-statement checking, then mutating-PRAGMA rejection),
+  but a truly hardened version would use a real SQL tokenizer, and it still
+  doesn't bound query *cost* (see the DoS note in §5).
 - **Single database per backend** → matches how real backends work (H2/Postgres);
   I deliberately did *not* build multi-database switching to avoid scope creep.
 
@@ -279,7 +313,8 @@ Interviewers often pivot from the project to fundamentals. Be ready on:
 | How many challenges? | 50, across 3 datasets, Easy→Hard, auto-graded. |
 | How is state stored? | In-memory DB + three localStorage keys (history, solved, saved datasets). |
 | Is it published? | Package is publish-ready with `exports` for `.`, `./react`, `./server`, plus a CLI `bin`. |
-| Tests? | Playwright e2e (11 checks), HTTP tests for the server, and a solution-validation harness. |
+| Tests? | Playwright e2e (12 checks, incl. a crash regression test), HTTP probes for the server guard, and a solution-validation harness. Unit tests (vitest) are the top recommended add. |
+| Security audit? | Yes — found & fixed a CSV-import SQL injection, a `readOnly` PRAGMA bypass, and a UI crash; documented a server DoS and CSV formula-injection. All reproduced by execution. See [BUGREPORT.md](BUGREPORT.md). |
 | Biggest limitation? | It's SQLite-dialect and in-memory — not a production datastore or an ORM replacement. |
 | Why not just use DB Fiddle / LeetCode? | Those are hosted single-purpose sites; this is installable, offline, all-in-one, and embeddable. |
 
@@ -294,5 +329,75 @@ Interviewers often pivot from the project to fundamentals. Be ready on:
 
 ---
 
-*Good luck. If you can explain Sections 2, 4, and 5 in your own words, you can
-handle almost anything they throw at this project.*
+## 11. Hard / senior questions (answers grounded ONLY in this implementation)
+
+These are the "staff-round" curveballs. The honest move on several is to reframe:
+this app has no Redis/Kafka/DB cluster, and saying so precisely is a stronger
+answer than inventing infrastructure.
+
+**"What happens if Redis / the database / Kafka goes down?"**
+There is none — and that's a deliberate architectural property, not a gap. The
+hosted app has no server, no cache, and no message broker; the "database" is an
+in-memory SQLite instance inside the user's own tab. There is nothing to fall
+over. The only server component is the *optional* `sqlplay/server` middleware,
+where SQLite lives in the Node process — if that process dies, an in-memory DB is
+lost by design (like an H2 in-memory DB), and a file-backed one is reloaded from
+disk on restart.
+
+**"How does it scale to millions of users?"**
+Because all computation is client-side, it scales the way a static site scales:
+the app is HTML/JS/WASM on a CDN, so "millions of users" is millions of
+independent browser tabs each running their own database — there is no shared
+backend to contend on, no connection pool, no hot row. The scaling limit is CDN
+bandwidth for the ~660 KB WASM, addressed by caching/code-splitting. The server
+middleware is the opposite: it's single-process and single-DB *by design* (a dev
+console), so it does **not** horizontally scale — and I wouldn't pretend it does.
+
+**"How do you prevent one query from taking down the service?"**
+Today, in server mode, you can't fully — `sql.js` is synchronous, so a runaway
+query blocks the event loop (I proved this; see §5). The correct fix is a worker
+thread with a wall-clock timeout. I know exactly where the boundary is rather than
+claiming it's bulletproof.
+
+**"How is consistency / durability handled?"**
+The working DB is intentionally ephemeral (resets on refresh — same contract as an
+H2 in-memory database). Durability is opt-in and user-driven: Save-as-dataset
+serializes the DB to localStorage, and export writes a real `.sqlite` file. The
+server file-mode persists after write statements. There's no multi-writer
+concurrency, so no consistency protocol is needed — a property of the
+single-user, single-process design.
+
+**"Why build your own SQL statement splitter / read-only guard instead of a
+parser?"** Cost/benefit for a dev tool: a quote/comment-aware scanner is ~40 lines
+and correct for the splitting job; a full parser is a dependency and a maintenance
+surface. I'm explicit that the *security* guard built on it is "good enough behind
+auth," not a hardened boundary — and the audit shows exactly how far it can be
+pushed (multi-statement, `WITH…DELETE`, mutating PRAGMA), all now handled.
+
+**"How would you make CSV/JSON import safe by construction?"**
+Stop generating SQL strings. Today it builds `INSERT … VALUES (…)` text (now with
+correct quoting after the injection fix). The structurally safe version generates
+`INSERT … VALUES (?, ?, …)` and binds values through the engine's existing
+parameterized `mutate(sql, params)` — then quoting bugs are impossible regardless
+of type inference. That's the refactor I'd prioritize (see IMPROVEMENTS.md §5).
+
+**"Where are the failure modes and how do you recover?"**
+- *Runaway query* → freezes tab (browser) / blocks process (server). Recovery:
+  refresh / restart today; worker+timeout is the fix.
+- *Uncaught render error* → previously blanked the app; now an `ErrorBoundary`
+  shows a recoverable "Try again / Reload" fallback.
+- *Stale table after a dataset swap* → the DataEditor load is now try/caught.
+- *localStorage full* on save → caught, surfaces "export to .sqlite" guidance.
+- *Malformed share link / import file* → caught, ignored / reported; never crashes.
+
+**"What would you monitor if this were a real service?"**
+For the CDN-served app: asset load success, WASM instantiation failures, JS error
+rate (the ErrorBoundary is the natural hook), and client query latency percentiles
+via a lightweight beacon. For the server middleware: request latency/timeouts
+(the DoS signal), 4xx/403 rate from the read-only guard, and process memory.
+
+---
+
+*Good luck. If you can explain Sections 2, 4, and 5 in your own words — and the
+audit findings in §5 and §11 — you can handle almost anything they throw at this
+project.*

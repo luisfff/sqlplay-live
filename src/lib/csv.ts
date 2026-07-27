@@ -68,21 +68,33 @@ export function parseCsv(text: string): { header: string[]; rows: string[][] } {
   return { header, rows: clean };
 }
 
-/** Guess a SQLite column affinity from sampled values. */
+/** A value SQLite can safely take as a bare numeric literal. */
+const NUMERIC_LITERAL = /^-?(?:\d+|\d*\.\d+)$/;
+
+/**
+ * Guess a SQLite column affinity from sampled values. EVERY non-empty value
+ * must be numeric for a numeric affinity — a single non-numeric value makes the
+ * column TEXT. (Previously this returned REAL on the first decimal without
+ * checking the rest, so a later non-numeric value was emitted as an unquoted
+ * literal — a SQL-injection hole. See lit() for the second line of defense.)
+ */
 function inferType(values: string[]): "INTEGER" | "REAL" | "TEXT" {
   let sawNumber = false;
+  let sawReal = false;
   for (const v of values) {
     if (v === "" || v == null) continue;
-    if (!/^-?\d+$/.test(v.trim())) {
-      if (/^-?\d*\.\d+$/.test(v.trim())) {
-        sawNumber = true;
-        return "REAL";
-      }
-      return "TEXT";
+    const s = v.trim();
+    if (/^-?\d+$/.test(s)) {
+      sawNumber = true;
+    } else if (/^-?\d*\.\d+$/.test(s)) {
+      sawNumber = true;
+      sawReal = true;
+    } else {
+      return "TEXT"; // any non-numeric value forces TEXT
     }
-    sawNumber = true;
   }
-  return sawNumber ? "INTEGER" : "TEXT";
+  if (!sawNumber) return "TEXT";
+  return sawReal ? "REAL" : "INTEGER";
 }
 
 function sanitizeIdent(name: string, fallback: string): string {
@@ -109,8 +121,10 @@ export function csvToSql(fileName: string, text: string): string {
 
   const lit = (v: string | undefined, type: string) => {
     if (v === undefined || v === "") return "NULL";
-    if (type === "TEXT") return "'" + v.replace(/'/g, "''") + "'";
-    return v.trim();
+    // Only emit a bare (unquoted) literal for a value that is actually numeric;
+    // anything else is quoted, so a mis-typed column can never inject SQL.
+    if (type !== "TEXT" && NUMERIC_LITERAL.test(v.trim())) return v.trim();
+    return "'" + v.replace(/'/g, "''") + "'";
   };
 
   const values = rows
@@ -159,9 +173,12 @@ export function jsonToSql(fileName: string, text: string): string {
 
   const lit = (v: unknown, type: string) => {
     if (v == null) return "NULL";
-    if (type === "TEXT")
-      return "'" + String(typeof v === "object" ? JSON.stringify(v) : v).replace(/'/g, "''") + "'";
-    return String(v);
+    // A numeric column emits a bare literal only for a finite number; anything
+    // else (incl. NaN/Infinity or an unexpected string) is quoted safely.
+    if (type !== "TEXT" && typeof v === "number" && Number.isFinite(v)) {
+      return String(v);
+    }
+    return "'" + String(typeof v === "object" ? JSON.stringify(v) : v).replace(/'/g, "''") + "'";
   };
 
   const values = data

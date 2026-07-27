@@ -66,7 +66,7 @@ export function renderAdminPage(cfg: {
 <script>
 var CFG = ${config};
 var API = location.pathname.replace(/\\/?$/, '/');
-function esc(s){s=(s==null?'':String(s));return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function esc(s){s=(s==null?'':String(s));return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function el(id){return document.getElementById(id);}
 function loadSchema(){
   fetch(API+'api/schema').then(function(r){return r.json();}).then(function(d){

@@ -1,6 +1,6 @@
 {
   "name": "sqlplay",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "description": "An H2-Console-style SQL playground for JavaScript. Practice SQL in a real in-memory SQLite database that runs 100% in your browser — zero backend, zero setup.",
   "author": {
     "name": "Yogesh Chauhan",

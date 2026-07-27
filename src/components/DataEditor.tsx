@@ -37,16 +37,24 @@ export function DataEditor({ db, tables, onChanged }: Props) {
 
   const load = (name: string) => {
     if (!db || !name) return setLoaded(null);
-    const res = db.query(`SELECT rowid AS __rowid, * FROM "${name}"`);
-    if (!res) return setLoaded({ columns: [], rows: [] });
-    setLoaded({
-      columns: res.columns.slice(1),
-      rows: res.rows.map((r) => ({
-        rowid: Number(r[0]),
-        cells: r.slice(1),
-      })),
-    });
-    setDraft(null);
+    try {
+      const res = db.query(`SELECT rowid AS __rowid, * FROM "${name}"`);
+      if (!res) return setLoaded({ columns: [], rows: [] });
+      setLoaded({
+        columns: res.columns.slice(1),
+        rows: res.rows.map((r) => ({
+          rowid: Number(r[0]),
+          cells: r.slice(1),
+        })),
+      });
+      setDraft(null);
+    } catch {
+      // The selected table can briefly be stale — e.g. a dataset switch swaps
+      // the db before the selection-sync effect picks a table that exists.
+      // Clear the view instead of letting the throw unmount the app.
+      setLoaded(null);
+      setDraft(null);
+    }
   };
 
   useEffect(() => {
