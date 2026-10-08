@@ -24,7 +24,14 @@ pnpm dlx sqlplay   # pnpm
 bunx sqlplay       # bun
 ```
 
-Your browser opens to a full SQL console. Pick a sample dataset and start querying.
+Your browser opens to a full SQL console with the **Tasks database** ready to query.
+Shared links still open their specified dataset and query.
+
+In Playground, **Reset current dataset** restores the selected sample's seed or
+the selected saved dataset's snapshot, discarding unsaved database changes.
+**Reset to Tasks database** always creates a fresh Tasks database and restores its
+starter query, regardless of the current dataset or schema. Both ask for confirmation;
+cancel changes nothing. Saved datasets, query history and challenge progress are kept.
 
 Or just open the **[live demo](https://sqlplay.vercel.app/)**.
 
@@ -53,7 +60,7 @@ sqlplay --help
 - **Import CSV / JSON** — drop a file in and it auto-creates a typed table.
 - **Export** result sets to CSV, or the whole database to a `.sqlite` file.
 - **Shareable links** — the dataset and query are encoded in the URL hash, so nothing is sent to a server.
-- **Sample datasets** — HR/Employees, E-commerce/Orders, University/Enrollments, or start empty.
+- **Sample datasets** — Tasks (default), HR/Employees, E-commerce/Orders, University/Enrollments, or start empty.
 
 ### Challenge mode
 
