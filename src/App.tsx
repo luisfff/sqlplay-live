@@ -38,6 +38,8 @@ import {
 type Mode = "play" | "learn";
 type OutputView = "results" | "diagram" | "data";
 
+const DEFAULT_DATASET_ID = "tasks";
+
 async function freshDatasetDb(datasetId: string): Promise<InMemoryDatabase> {
   const db = await InMemoryDatabase.create();
   const ds = findDataset(datasetId);
@@ -53,7 +55,7 @@ export default function App() {
   const [foreignKeys, setForeignKeys] = useState<ForeignKey[]>([]);
   const [query, setQuery] = useState<string>("");
   const [outcomes, setOutcomes] = useState<StatementOutcome[]>([]);
-  const [datasetId, setDatasetId] = useState<string>("hr");
+  const [datasetId, setDatasetId] = useState<string>(DEFAULT_DATASET_ID);
   const [status, setStatus] = useState<string>("Loading SQLite engine…");
 
   const [userDatasets, setUserDatasets] = useState<UserDataset[]>([]);
@@ -94,7 +96,7 @@ export default function App() {
     async (value: string, nextQuery?: string) => {
       if (value.startsWith("user:")) {
         const ud = getUserDataset(value.slice(5));
-        if (!ud) return loadDataset("hr");
+        if (!ud) return loadDataset(DEFAULT_DATASET_ID);
         const database = await InMemoryDatabase.open(base64ToBytes(ud.b64));
         setDb(database);
         refreshSchema(database);
@@ -135,8 +137,21 @@ export default function App() {
     if (!window.confirm(`Delete saved dataset "${currentUserDataset.name}"?`))
       return;
     setUserDatasets(deleteUserDataset(currentUserDataset.id));
-    loadDataset("hr");
+    loadDataset(DEFAULT_DATASET_ID);
   }, [currentUserDataset, loadDataset]);
+
+  // Rebuild the current dataset from scratch, discarding any changes made to it.
+  const resetDatabase = useCallback(async () => {
+    if (
+      !window.confirm(
+        "Reset the database to its original state? All changes will be lost."
+      )
+    )
+      return;
+    setFeedback(null);
+    await openDataset(datasetId, queryRef.current);
+    setStatus("Database reset to its original state.");
+  }, [datasetId, openDataset]);
 
   // Boot: honor a shared link if present, else the default dataset.
   useEffect(() => {
@@ -149,7 +164,7 @@ export default function App() {
         setStatus("Loaded shared query from link.")
       );
     } else {
-      loadDataset("hr").catch((err) =>
+      loadDataset(DEFAULT_DATASET_ID).catch((err) =>
         setStatus(`Failed to start engine: ${String(err)}`)
       );
     }
@@ -339,6 +354,14 @@ export default function App() {
               🗑 Delete
             </button>
           )}
+          <button
+            className="btn"
+            onClick={resetDatabase}
+            disabled={!db}
+            title="Reset the database back to its original dataset state"
+          >
+            ↺ Reset DB
+          </button>
           <button className="btn" onClick={() => setShowHistory((s) => !s)}>
             🕑 History
           </button>

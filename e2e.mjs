@@ -26,7 +26,7 @@ page.on("pageerror", (e) => {
 try {
   await page.goto(BASE, { waitUntil: "networkidle" });
 
-  // --- Playground: default HR dataset loads + starter query runs ---
+  // --- Playground: default Tasks dataset loads + starter query runs ---
   await page.waitForSelector(".schema-tree", { timeout: 15000 });
   await page.getByRole("button", { name: /Run/ }).first().click();
   await page.waitForSelector(".results table", { timeout: 10000 });
@@ -37,11 +37,31 @@ try {
   await page.screenshot({ path: "docs/screenshot-playground.png" });
   ok("Captured hero screenshot -> docs/screenshot-playground.png");
 
-  // --- Schema sidebar shows HR tables ---
+  // --- Schema sidebar shows Tasks tables ---
   const schemaText = await page.locator(".schema-tree").innerText();
-  /employees/.test(schemaText) && /departments/.test(schemaText)
+  /task_tag/.test(schemaText) && /status/.test(schemaText)
     ? ok("Schema sidebar lists tables")
     : no("Schema sidebar", schemaText.slice(0, 60));
+
+  // --- Reset DB restores the original dataset after a destructive change ---
+  page.once("dialog", (d) => d.accept());
+  await page.locator(".cm-content").click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.type("DELETE FROM task_tag; SELECT COUNT(*) AS n FROM task_tag;");
+  await page.getByRole("button", { name: /Run/ }).first().click();
+  await page.waitForSelector(".results table", { timeout: 10000 });
+  const afterDelete = (await page.locator(".results table").last().locator("tbody td:not(.rownum)").first().innerText()).trim();
+  await page.getByRole("button", { name: /Reset DB/ }).click();
+  await sleep(300);
+  await page.locator(".cm-content").click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.type("SELECT COUNT(*) AS n FROM task_tag;");
+  await page.getByRole("button", { name: /Run/ }).first().click();
+  await page.waitForSelector(".results table", { timeout: 10000 });
+  const afterReset = (await page.locator(".results table").last().locator("tbody td:not(.rownum)").first().innerText()).trim();
+  afterDelete === "0" && afterReset === "12"
+    ? ok("Reset DB restores original data")
+    : no("Reset DB", `after delete=${afterDelete}, after reset=${afterReset}`);
 
   // --- ER Diagram tab renders an SVG with FK edges ---
   await page.getByRole("button", { name: "ER Diagram" }).click();
