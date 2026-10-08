@@ -87,7 +87,7 @@ export default function App() {
 
   // Open either a built-in sample or a saved user dataset (prefixed "user:").
   const openDataset = useCallback(
-    async (value: string, nextQuery?: string, successStatus?: string) => {
+    async (value: string, nextQuery?: string, successStatus?: string, requireSavedSnapshot = false) => {
       if (pendingRef.current) return false;
       pendingRef.current = true;
       setLoading(true);
@@ -98,6 +98,9 @@ export default function App() {
         const saved = value.startsWith("user:")
           ? getUserDataset(value.slice(5))
           : undefined;
+        if (requireSavedSnapshot && !saved) {
+          throw new Error("The selected saved dataset snapshot no longer exists");
+        }
         const dataset = findDataset(saved ? DEFAULT_DATASET_ID : value);
         candidate = saved
           ? await InMemoryDatabase.open(base64ToBytes(saved.b64))
@@ -179,7 +182,8 @@ export default function App() {
       : `Reset current dataset "${findDataset(datasetId).name}" to its original seed? Unsaved database changes will be discarded.`;
     if (!window.confirm(message)) return;
     void openDataset(target, toTasks ? undefined : queryRef.current,
-      toTasks ? "Reset to Tasks database — original seed restored." : undefined);
+      toTasks ? "Reset to Tasks database — original seed restored." : undefined,
+      !toTasks && datasetId.startsWith("user:"));
   }, [db, datasetId, currentUserDataset, openDataset]);
 
   // Boot: honor a shared link if present, else the default dataset.

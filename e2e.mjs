@@ -264,6 +264,15 @@ try {
   assert.deepEqual(await resultRows(), [["X"]]);
   await page.evaluate((snapshot) => localStorage.setItem("sqlplay.userDatasets.v1", snapshot), savedSnapshot);
   ok("Failed snapshot reset preserves the active database");
+  await page.evaluate(() => localStorage.setItem("sqlplay.userDatasets.v1", "[]"));
+  await reset("Reset current dataset");
+  assert.match(await page.getByRole("status").innerText(), /snapshot no longer exists/);
+  assert.equal(await page.locator(".controls select").inputValue(), savedId);
+  await execute("SELECT name FROM author;");
+  assert.deepEqual(await resultRows(), [["X"]]);
+  assert.equal(await page.evaluate(() => localStorage.getItem("sqlplay.userDatasets.v1")), "[]");
+  await page.evaluate((snapshot) => localStorage.setItem("sqlplay.userDatasets.v1", snapshot), savedSnapshot);
+  ok("Missing snapshot during current reset preserves identity and active database");
 
   // Reload the page — saved dataset must persist (localStorage)
   await page.reload({ waitUntil: "networkidle" });
