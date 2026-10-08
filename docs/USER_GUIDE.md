@@ -127,9 +127,12 @@ Press **Ctrl+C** in the terminal to stop the server.
 
 ## 4. Playground: querying ✅
 
-1. Choose a dataset from the **Dataset** dropdown (start with *HR / Employees*).
+1. Choose a dataset from the **Dataset** dropdown (the app starts with *Tasks / To-do*).
 2. Type SQL in the editor.
 3. Run it with **▶ Run** or **Ctrl/⌘ + Enter**.
+
+**Reset DB:** click **↺ Reset DB** to rebuild the current dataset from scratch,
+discarding any changes (inserts, deletes, dropped tables…). Your editor text is kept.
 
 **Run only part of a script:** select (highlight) one or more statements in the
 editor and run — only the selection executes. With nothing selected, the whole
