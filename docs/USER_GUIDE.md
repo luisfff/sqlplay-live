@@ -127,9 +127,20 @@ Press **Ctrl+C** in the terminal to stop the server.
 
 ## 4. Playground: querying ✅
 
-1. Choose a dataset from the **Dataset** dropdown (start with *HR / Employees*).
+1. Choose a dataset from the **Dataset** dropdown (the app starts with *Tasks database*, unless a shared link selects another dataset and query).
 2. Type SQL in the editor.
 3. Run it with **▶ Run** or **Ctrl/⌘ + Enter**.
+
+**Reset current dataset:** restores the selected sample's original seed or the
+selected saved dataset's snapshot, discarding unsaved database changes (inserts,
+deletes, dropped tables…). The selected dataset and editor text are kept. If its
+saved snapshot is missing, the reset fails without changing the working database.
+
+**Reset to Tasks database:** always switches to a fresh Tasks database and restores
+its starter query, regardless of the selected dataset or current schema.
+
+Both Playground resets ask for confirmation; cancel changes nothing. Neither
+changes saved datasets, query history, or challenge progress.
 
 **Run only part of a script:** select (highlight) one or more statements in the
 editor and run — only the selection executes. With nothing selected, the whole
