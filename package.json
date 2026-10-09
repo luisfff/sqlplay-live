@@ -70,7 +70,7 @@
     "preview": "vite preview",
     "start": "node bin/cli.mjs",
     "docs:er": "node scripts/gen-er-svg.mjs",
-    "test:e2e": "node e2e.mjs",
+    "test:e2e": "node e2e.mjs && node e2e-reset-lifecycle.mjs",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build:all"
   },

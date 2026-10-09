@@ -6,7 +6,7 @@ import {
   type StatementOutcome,
   type TableInfo,
 } from "./engine/db";
-import { SAMPLE_DATASETS, findDataset } from "./data/samples";
+import { DEFAULT_DATASET_ID, SAMPLE_DATASETS, findDataset } from "./data/samples";
 import { CHALLENGES, type Challenge } from "./data/challenges";
 import { SqlEditor } from "./components/SqlEditor";
 import { ResultsTable } from "./components/ResultsTable";
@@ -38,13 +38,17 @@ import {
 type Mode = "play" | "learn";
 type OutputView = "results" | "diagram" | "data";
 
-const DEFAULT_DATASET_ID = "tasks";
-
 async function freshDatasetDb(datasetId: string): Promise<InMemoryDatabase> {
   const db = await InMemoryDatabase.create();
   const ds = findDataset(datasetId);
-  if (ds.sql.trim()) db.run(ds.sql);
-  return db;
+  try {
+    const error = db.run(ds.sql).find((outcome) => outcome.error);
+    if (error) throw new Error(error.error!);
+    return db;
+  } catch (err) {
+    db.reset();
+    throw err;
+  }
 }
 
 export default function App() {
@@ -57,6 +61,8 @@ export default function App() {
   const [outcomes, setOutcomes] = useState<StatementOutcome[]>([]);
   const [datasetId, setDatasetId] = useState<string>(DEFAULT_DATASET_ID);
   const [status, setStatus] = useState<string>("Loading SQLite engine…");
+  const [loading, setLoading] = useState(true);
+  const [dbVersion, setDbVersion] = useState(0);
 
   const [userDatasets, setUserDatasets] = useState<UserDataset[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -70,45 +76,71 @@ export default function App() {
   queryRef.current = query;
   const selectionRef = useRef<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const activeDbRef = useRef<InMemoryDatabase | null>(null);
+  const pendingRef = useRef(false);
+  const generationRef = useRef(0);
 
   const refreshSchema = useCallback((d: InMemoryDatabase) => {
     setSchema(d.schema());
     setForeignKeys(d.foreignKeys());
   }, []);
 
-  const loadDataset = useCallback(
-    async (id: string, nextQuery?: string) => {
-      const dataset = findDataset(id);
-      const fresh = await InMemoryDatabase.create();
-      if (dataset.sql.trim()) fresh.run(dataset.sql);
-      setDb(fresh);
-      refreshSchema(fresh);
-      setQuery(nextQuery ?? dataset.starterQuery);
-      setOutcomes([]);
-      setDatasetId(id);
-      setStatus(`Loaded "${dataset.name}" — in-memory SQLite ready.`);
-    },
-    [refreshSchema]
-  );
-
   // Open either a built-in sample or a saved user dataset (prefixed "user:").
   const openDataset = useCallback(
-    async (value: string, nextQuery?: string) => {
-      if (value.startsWith("user:")) {
-        const ud = getUserDataset(value.slice(5));
-        if (!ud) return loadDataset(DEFAULT_DATASET_ID);
-        const database = await InMemoryDatabase.open(base64ToBytes(ud.b64));
-        setDb(database);
-        refreshSchema(database);
-        setQuery(nextQuery ?? `-- Saved dataset: ${ud.name}\n`);
+    async (value: string, nextQuery?: string, successStatus?: string, requireSavedSnapshot = false) => {
+      if (pendingRef.current) return false;
+      pendingRef.current = true;
+      setLoading(true);
+      setStatus("Loading dataset…");
+      const generation = ++generationRef.current;
+      let candidate: InMemoryDatabase | null = null;
+      try {
+        const saved = value.startsWith("user:")
+          ? getUserDataset(value.slice(5))
+          : undefined;
+        if (requireSavedSnapshot && !saved) {
+          throw new Error("The selected saved dataset snapshot no longer exists");
+        }
+        const dataset = findDataset(saved ? DEFAULT_DATASET_ID : value);
+        candidate = saved
+          ? await InMemoryDatabase.open(base64ToBytes(saved.b64))
+          : await freshDatasetDb(dataset.id);
+        const nextSchema = candidate.schema();
+        const nextForeignKeys = candidate.foreignKeys();
+        if (generation !== generationRef.current) return false;
+        const previous = activeDbRef.current;
+        activeDbRef.current = candidate;
+        setDb(candidate);
+        candidate = null;
+        setSchema(nextSchema);
+        setForeignKeys(nextForeignKeys);
+        setQuery(nextQuery ?? (saved
+          ? `-- Saved dataset: ${saved.name}\n`
+          : dataset.starterQuery));
         setOutcomes([]);
-        setDatasetId(value);
-        setStatus(`Loaded saved dataset "${ud.name}".`);
-      } else {
-        await loadDataset(value, nextQuery);
+        setFeedback(null);
+        selectionRef.current = "";
+        setDbVersion((version) => version + 1);
+        setDatasetId(saved ? value : dataset.id);
+        setStatus(successStatus ?? (saved
+          ? `Loaded saved dataset "${saved.name}".`
+          : `Loaded "${dataset.name}" — in-memory SQLite ready.`));
+        previous?.reset();
+        return true;
+      } catch (err) {
+        if (generation === generationRef.current) {
+          setStatus(`Failed to load dataset: ${String(err)}. Current database unchanged.`);
+        }
+        return false;
+      } finally {
+        candidate?.reset();
+        if (generation === generationRef.current) {
+          pendingRef.current = false;
+          setLoading(false);
+        }
       }
     },
-    [loadDataset, refreshSchema]
+    []
   );
 
   const currentUserDataset = datasetId.startsWith("user:")
@@ -116,7 +148,7 @@ export default function App() {
     : undefined;
 
   const saveDataset = useCallback(() => {
-    if (!db) return;
+    if (!db || pendingRef.current) return;
     const name = window.prompt(
       "Save current database as a dataset:",
       currentUserDataset?.name ?? ""
@@ -133,25 +165,26 @@ export default function App() {
   }, [db, currentUserDataset]);
 
   const deleteDataset = useCallback(() => {
-    if (!currentUserDataset) return;
+    if (!currentUserDataset || pendingRef.current) return;
     if (!window.confirm(`Delete saved dataset "${currentUserDataset.name}"?`))
       return;
     setUserDatasets(deleteUserDataset(currentUserDataset.id));
-    loadDataset(DEFAULT_DATASET_ID);
-  }, [currentUserDataset, loadDataset]);
+    void openDataset(DEFAULT_DATASET_ID);
+  }, [currentUserDataset, openDataset]);
 
-  // Rebuild the current dataset from scratch, discarding any changes made to it.
-  const resetDatabase = useCallback(async () => {
-    if (
-      !window.confirm(
-        "Reset the database to its original state? All changes will be lost."
-      )
-    )
-      return;
-    setFeedback(null);
-    await openDataset(datasetId, queryRef.current);
-    setStatus("Database reset to its original state.");
-  }, [datasetId, openDataset]);
+  const resetDataset = useCallback((toTasks: boolean) => {
+    if (!db || pendingRef.current) return;
+    const target = toTasks ? DEFAULT_DATASET_ID : datasetId;
+    const message = toTasks
+      ? "Reset to a fresh Tasks database and restore its starter query? All unsaved database changes will be discarded. Saved datasets, query history and challenge progress will be kept."
+      : currentUserDataset
+      ? `Reset current dataset "${currentUserDataset.name}" to its saved snapshot? Unsaved database changes will be discarded; the saved snapshot will not be changed.`
+      : `Reset current dataset "${findDataset(datasetId).name}" to its original seed? Unsaved database changes will be discarded.`;
+    if (!window.confirm(message)) return;
+    void openDataset(target, toTasks ? undefined : queryRef.current,
+      toTasks ? "Reset to Tasks database — original seed restored." : undefined,
+      !toTasks && datasetId.startsWith("user:"));
+  }, [db, datasetId, currentUserDataset, openDataset]);
 
   // Boot: honor a shared link if present, else the default dataset.
   useEffect(() => {
@@ -159,19 +192,21 @@ export default function App() {
     setSolved(loadSolved());
     setUserDatasets(listUserDatasets());
     const shared = decodeShareUrl();
-    if (shared) {
-      loadDataset(shared.datasetId, shared.query).then(() =>
-        setStatus("Loaded shared query from link.")
-      );
-    } else {
-      loadDataset(DEFAULT_DATASET_ID).catch((err) =>
-        setStatus(`Failed to start engine: ${String(err)}`)
-      );
-    }
-  }, [loadDataset]);
+    void openDataset(
+      shared?.datasetId ?? DEFAULT_DATASET_ID,
+      shared?.query,
+      shared ? "Loaded shared query from link." : undefined
+    );
+    return () => {
+      ++generationRef.current;
+      pendingRef.current = false;
+      activeDbRef.current?.reset();
+      activeDbRef.current = null;
+    };
+  }, [openDataset]);
 
   const run = useCallback(() => {
-    if (!db) return;
+    if (!db || pendingRef.current) return;
     const sql = selectionRef.current.trim() || queryRef.current;
     const result = db.run(sql);
     setOutcomes(result);
@@ -192,7 +227,7 @@ export default function App() {
   }, []);
 
   const downloadDb = useCallback(() => {
-    if (!db) return;
+    if (!db || pendingRef.current) return;
     const bytes = db.export();
     const blob = new Blob([bytes as unknown as BlobPart], {
       type: "application/octet-stream",
@@ -206,6 +241,7 @@ export default function App() {
   }, [db, datasetId]);
 
   const share = useCallback(async () => {
+    if (pendingRef.current) return;
     const url = encodeShareUrl({ datasetId, query: queryRef.current });
     try {
       await navigator.clipboard.writeText(url);
@@ -217,9 +253,13 @@ export default function App() {
 
   const onImportFile = useCallback(
     async (file: File) => {
-      if (!db) return;
+      if (!db || pendingRef.current) return;
+      pendingRef.current = true;
+      setLoading(true);
+      const generation = generationRef.current;
       try {
         const text = await file.text();
+        if (generation !== generationRef.current) return;
         const sql = file.name.toLowerCase().endsWith(".json")
           ? jsonToSql(file.name, text)
           : csvToSql(file.name, text);
@@ -231,6 +271,11 @@ export default function App() {
         );
       } catch (e) {
         setStatus(`Import failed: ${e instanceof Error ? e.message : e}`);
+      } finally {
+        if (generation === generationRef.current) {
+          pendingRef.current = false;
+          setLoading(false);
+        }
       }
     },
     [db, refreshSchema]
@@ -238,36 +283,52 @@ export default function App() {
 
   const selectChallenge = useCallback(
     async (c: Challenge) => {
-      setActiveChallenge(c);
-      setFeedback(null);
-      await loadDataset(
+      if (pendingRef.current) return;
+      const loaded = await openDataset(
         c.datasetId,
         `-- ${c.title}\n-- Write your query below, then click "Check answer".\n\n`
       );
+      if (loaded) setActiveChallenge(c);
     },
-    [loadDataset]
+    [openDataset]
   );
 
   const checkChallenge = useCallback(async () => {
-    if (!activeChallenge) return;
-    const userDb = await freshDatasetDb(activeChallenge.datasetId);
-    const userOutcomes = userDb.run(queryRef.current);
-    setOutcomes(userOutcomes);
-
-    const errored = userOutcomes.find((r) => r.error);
-    if (errored) {
-      setFeedback({ pass: false, reason: `SQL error: ${errored.error}` });
-      return;
-    }
-
-    const expDb = await freshDatasetDb(activeChallenge.datasetId);
-    const expected = lastResultSet(expDb.run(activeChallenge.solution));
-    const actual = lastResultSet(userOutcomes);
-    const cmp = compareResults(expected, actual, activeChallenge.orderMatters);
-    setFeedback(cmp);
-    if (cmp.pass) {
-      setSolved(markSolved(activeChallenge.id));
-      setStatus(`Solved "${activeChallenge.title}"! 🎉`);
+    if (!activeChallenge || pendingRef.current) return;
+    pendingRef.current = true;
+    setLoading(true);
+    const generation = generationRef.current;
+    let userDb: InMemoryDatabase | null = null;
+    let expDb: InMemoryDatabase | null = null;
+    try {
+      userDb = await freshDatasetDb(activeChallenge.datasetId);
+      if (generation !== generationRef.current) return;
+      const userOutcomes = userDb.run(queryRef.current);
+      setOutcomes(userOutcomes);
+      const errored = userOutcomes.find((r) => r.error);
+      if (errored) {
+        setFeedback({ pass: false, reason: `SQL error: ${errored.error}` });
+        return;
+      }
+      expDb = await freshDatasetDb(activeChallenge.datasetId);
+      if (generation !== generationRef.current) return;
+      const expected = lastResultSet(expDb.run(activeChallenge.solution));
+      const actual = lastResultSet(userOutcomes);
+      const cmp = compareResults(expected, actual, activeChallenge.orderMatters);
+      setFeedback(cmp);
+      if (cmp.pass) {
+        setSolved(markSolved(activeChallenge.id));
+        setStatus(`Solved "${activeChallenge.title}"! 🎉`);
+      }
+    } catch (err) {
+      if (generation === generationRef.current) setStatus(`Check failed: ${String(err)}`);
+    } finally {
+      userDb?.reset();
+      expDb?.reset();
+      if (generation === generationRef.current) {
+        pendingRef.current = false;
+        setLoading(false);
+      }
     }
   }, [activeChallenge]);
 
@@ -280,6 +341,7 @@ export default function App() {
 
   const switchMode = useCallback(
     (m: Mode) => {
+      if (pendingRef.current) return;
       setMode(m);
       setFeedback(null);
       if (m === "learn" && !activeChallenge) {
@@ -302,12 +364,14 @@ export default function App() {
         <div className="mode-switch">
           <button
             className={mode === "play" ? "active" : ""}
+            disabled={loading}
             onClick={() => switchMode("play")}
           >
             Playground
           </button>
           <button
             className={mode === "learn" ? "active" : ""}
+            disabled={loading}
             onClick={() => switchMode("learn")}
           >
             Challenges
@@ -320,6 +384,7 @@ export default function App() {
               Dataset&nbsp;
               <select
                 value={datasetId}
+                disabled={loading}
                 onChange={(e) => openDataset(e.target.value)}
               >
                 <optgroup label="Samples">
@@ -341,41 +406,43 @@ export default function App() {
               </select>
             </label>
           )}
-          <button className="btn primary" onClick={run} disabled={!db}>
+          <button className="btn primary" onClick={run} disabled={!db || loading}>
             ▶ Run <span className="hint">Ctrl/⌘+↵</span>
           </button>
           {mode === "play" && (
-            <button className="btn" onClick={saveDataset} disabled={!db}>
+            <button className="btn" onClick={saveDataset} disabled={!db || loading}>
               💾 Save dataset
             </button>
           )}
           {mode === "play" && currentUserDataset && (
-            <button className="btn" onClick={deleteDataset}>
+            <button className="btn" onClick={deleteDataset} disabled={loading}>
               🗑 Delete
             </button>
           )}
-          <button
-            className="btn"
-            onClick={resetDatabase}
-            disabled={!db}
-            title="Reset the database back to its original dataset state"
-          >
-            ↺ Reset DB
-          </button>
+          {mode === "play" && (
+            <>
+              <button className="btn" onClick={() => resetDataset(false)} disabled={!db || loading}>
+                Reset current dataset
+              </button>
+              <button className="btn" onClick={() => resetDataset(true)} disabled={!db || loading}>
+                Reset to Tasks database
+              </button>
+            </>
+          )}
           <button className="btn" onClick={() => setShowHistory((s) => !s)}>
             🕑 History
           </button>
           <button
             className="btn"
             onClick={() => fileInputRef.current?.click()}
-            disabled={!db}
+            disabled={!db || loading}
           >
             ⭱ Import
           </button>
-          <button className="btn" onClick={share} disabled={!db}>
+          <button className="btn" onClick={share} disabled={!db || loading}>
             🔗 Share
           </button>
-          <button className="btn" onClick={downloadDb} disabled={!db}>
+          <button className="btn" onClick={downloadDb} disabled={!db || loading}>
             ⭳ .sqlite
           </button>
           <button
@@ -400,7 +467,7 @@ export default function App() {
       </header>
 
       {showHistory && (
-        <div className="history-panel">
+        <div className="history-panel" {...(loading ? { inert: "" } : {})}>
           <div className="history-head">
             <span>Recent queries</span>
             <button
@@ -434,7 +501,7 @@ export default function App() {
         </div>
       )}
 
-      <div className="workspace">
+      <div className="workspace" aria-busy={loading} {...(loading ? { inert: "" } : {})}>
         <aside className="sidebar">
           {mode === "play" ? (
             <>
@@ -464,6 +531,7 @@ export default function App() {
             />
           )}
           <SqlEditor
+            key={dbVersion}
             value={query}
             onChange={setQuery}
             schema={schema}
@@ -495,6 +563,7 @@ export default function App() {
               <ERDiagram schema={schema} foreignKeys={foreignKeys} />
             ) : (
               <DataEditor
+                key={dbVersion}
                 db={db}
                 tables={schema}
                 onChanged={() => db && refreshSchema(db)}
@@ -505,7 +574,7 @@ export default function App() {
       </div>
 
       <footer className="statusbar">
-        <span className="status-text" title={status}>
+        <span className="status-text" role="status" title={status}>
           {status}
         </span>
         <span className="footer-credit">

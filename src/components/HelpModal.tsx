@@ -136,6 +136,19 @@ function AppHelp() {
       <h3>Resetting &amp; what persists</h3>
       <ul>
         <li>
+          Startup uses <strong>Tasks database</strong>, unless a shared link
+          selects another dataset/query.
+        </li>
+        <li>
+          <strong>Reset current dataset</strong> restores the selected sample's
+          seed or a saved dataset's snapshot, discarding unsaved database changes.
+        </li>
+        <li>
+          <strong>Reset to Tasks database</strong> always switches to a fresh
+          Tasks seed and its starter query. Both resets ask for confirmation;
+          cancel changes nothing. Neither changes saved datasets, history or progress.
+        </li>
+        <li>
           The working database is <strong>in-memory</strong>: refreshing the
           page, switching datasets, or changing challenge <strong>wipes it</strong>{" "}
           — unless you <strong>Save</strong> it.
