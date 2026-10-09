@@ -1,4 +1,6 @@
-# SQLPlay
+# SQLPlay Live
+
+A fork of [SQLPlay](https://github.com/Yogesh0627/sqlplay) with recent enhancements for improved database management and deployment.
 
 [![npm version](https://img.shields.io/npm/v/sqlplay.svg)](https://www.npmjs.com/package/sqlplay)
 [![license](https://img.shields.io/npm/l/sqlplay.svg)](https://github.com/Yogesh0627/sqlplay/blob/main/LICENSE)
@@ -6,15 +8,45 @@
 
 An **H2-Console-style SQL playground for JavaScript.** Practice SQL against a real in-memory **SQLite** database that runs **100% in your browser** — no server, no database install, no setup.
 
-**🚀 Live demo: [sqlplay.vercel.app](https://sqlplay.vercel.app/)**  ·  **📦 [npm](https://www.npmjs.com/package/sqlplay)**  ·  **💻 [GitHub](https://github.com/Yogesh0627/sqlplay)**
+**🚀 Live demo: [sqlplay-live.github.io](https://luisfff.github.io/sqlplay-live/)**  ·  **📦 [npm](https://www.npmjs.com/package/sqlplay)**  ·  **💻 [Original Repo](https://github.com/Yogesh0627/sqlplay)**
 
-Java has the H2 Console for this. JavaScript didn't have a comparable zero-setup SQL practice console — SQLPlay fills that gap by putting a friendly UI on top of [sql.js](https://github.com/sql-js/sql.js) (SQLite compiled to WebAssembly).
+Java has the H2 Console for this. JavaScript didn't have a comparable zero-setup SQL practice console — SQLPlay fills that gap by putting a friendly UI on top of [sql.js](https://github.com/sql-js/sql.js).
 
 ![SQLPlay console](https://raw.githubusercontent.com/Yogesh0627/sqlplay/main/docs/screenshot-playground.png)
 
 ---
 
-## Quick start
+## Recent Updates
+
+This fork includes the following enhancements:
+
+### 1. **Tasks Database as Default Startup** ([PR #1](https://github.com/luisfff/sqlplay-live/pull/1))
+- The playground now starts with the **Tasks** sample database instead of HR
+- Complete Tasks schema: `user`, `status`, `task`, `tag`, and `task_tag` (many-to-many) tables
+- Foreign keys with `ON DELETE CASCADE` for data integrity
+- Starter query joins tasks with owner and status information
+
+### 2. **Reset Database Functionality** ([PR #2](https://github.com/luisfff/sqlplay-live/pull/2))
+- New **↺ Reset DB** toolbar button with two safe reset modes:
+  - **Reset current dataset:** reload the selected sample seed or saved snapshot
+  - **Reset to Tasks database:** always create fresh Tasks data and restore the starter query
+- Confirmation dialogs prevent accidental data loss
+- Saved datasets, query history, and challenge progress are preserved
+
+### 3. **CI/CD & Deployment Pipeline** ([PR #3](https://github.com/luisfff/sqlplay-live/pull/3))
+- **GitHub Actions CI** (`.github/workflows/ci.yml`): Automated testing on every PR and push to `main`
+  - Runs `npm ci` → `typecheck` → `build` → `build:lib`
+  - Node 20 with npm cache
+  - Concurrency control with automatic cancellation of superseded runs
+- **GitHub Pages Deployment** (`.github/workflows/deploy-pages.yml`): Automatic production deployment
+  - Builds Vite bundle and deploys `dist/` to GitHub Pages
+  - Separate build and deploy jobs for reliability
+  - Deployment triggered on every push to `main` or manual workflow dispatch
+  - App is deployed to: **[GitHub Pages](https://luisfff.github.io/sqlplay-live/)**
+
+---
+
+## Quick Start
 
 Run it instantly — no global install needed:
 
@@ -33,7 +65,7 @@ the selected saved dataset's snapshot, discarding unsaved database changes.
 starter query, regardless of the current dataset or schema. Both ask for confirmation;
 cancel changes nothing. Saved datasets, query history and challenge progress are kept.
 
-Or just open the **[live demo](https://sqlplay.vercel.app/)**.
+Or just open the **[live demo](https://luisfff.github.io/sqlplay-live/)**.
 
 ### CLI options
 
@@ -62,7 +94,7 @@ sqlplay --help
 - **Shareable links** — the dataset and query are encoded in the URL hash, so nothing is sent to a server.
 - **Sample datasets** — Tasks (default), HR/Employees, E-commerce/Orders, University/Enrollments, or start empty.
 
-### Challenge mode
+### Challenge Mode
 
 Practice SQL like LeetCode, offline.
 
@@ -78,7 +110,7 @@ Practice SQL like LeetCode, offline.
 
 ---
 
-## Use it as a library
+## Use it as a Library
 
 ```bash
 npm install sqlplay
@@ -86,7 +118,7 @@ npm install sqlplay
 
 The SQLite WASM binary is **embedded**, so these work in Node and any bundler (Vite, webpack, Next.js) with **zero configuration**.
 
-### Headless in-memory database
+### Headless In-Memory Database
 
 Works in Node or the browser.
 
@@ -102,7 +134,7 @@ const tables = db.schema();                  // table/column/FK metadata
 const bytes = db.export();                   // a real .sqlite file (Uint8Array)
 ```
 
-### Embeddable React console
+### Embeddable React Console
 
 Drop the full UI into your app. `react` and `react-dom` are peer dependencies; the CSS is injected automatically.
 
@@ -114,7 +146,7 @@ export default function AdminPage() {
 }
 ```
 
-### Backend-served console (H2-style)
+### Backend-Served Console (H2-Style)
 
 Mount it as Express/Connect middleware. The database lives in **your Node process**, and the browser console talks to it over an API — exactly the H2 Console model.
 
@@ -157,7 +189,7 @@ db/
 
 ---
 
-## SQL dialect
+## SQL Dialect
 
 SQLPlay runs the **SQLite** dialect (SQLite 3.49 via [sql.js](https://github.com/sql-js/sql.js)). Standard ANSI SQL — everything you'd practice for interviews and real work — runs as-is.
 
@@ -170,13 +202,13 @@ Engine-specific syntax from other databases (H2's `MERGE` / `SELECT TOP`, T-SQL,
 - **[User Guide](https://github.com/Yogesh0627/sqlplay/blob/main/docs/USER_GUIDE.md)** — every feature, data lifecycle, dialect, troubleshooting
 - **[Architecture](https://github.com/Yogesh0627/sqlplay/blob/main/docs/ARCHITECTURE.md)** — engine, delivery modes, build system, trade-offs
 - **[Deployment](https://github.com/Yogesh0627/sqlplay/blob/main/docs/DEPLOY.md)** — npm publish, static hosting, backend, security, CI
-- **[Interview prep](https://github.com/Yogesh0627/sqlplay/blob/main/docs/INTERVIEW.md)** — pitch, deep-dive Q&A, edge cases
+- **[Interview Prep](https://github.com/Yogesh0627/sqlplay/blob/main/docs/INTERVIEW.md)** — pitch, deep-dive Q&A, edge cases
 
 ---
 
-## How it works
+## How It Works
 
-The console is a static web app (React + Vite). All SQL executes client-side in sql.js, so the database lives entirely in browser memory — refresh to reset, exactly like an H2 in-memory database. The `sqlplay` CLI is a tiny dependency-free static server that serves the built app and opens your browser.
+The console is a static web app (React + Vite). All SQL executes client-side in sql.js, so the database lives entirely in browser memory — refresh to reset, exactly like an H2 in-memory database.
 
 The same core is packaged four ways from one codebase — CLI, headless library, React component, and Express middleware — by making the WASM loader injectable. See [ARCHITECTURE.md](https://github.com/Yogesh0627/sqlplay/blob/main/docs/ARCHITECTURE.md).
 
@@ -195,26 +227,26 @@ npm run test:e2e   # Playwright end-to-end tests
 npm run docs:er    # regenerate the ER-diagram SVGs in docs/
 ```
 
-### CI & deployment
+### CI & Deployment
 
 - **CI** (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`: `npm ci`, `npm run typecheck`, `npm run build`, `npm run build:lib`.
-- **Deployment** (`.github/workflows/deploy-pages.yml`) builds the static site and publishes `dist/` to **GitHub Pages** on every push to `main` (or manually via *Run workflow*). One-time setup: in the repository's **Settings → Pages**, set **Source** to **GitHub Actions**.
+- **Deployment** (`.github/workflows/deploy-pages.yml`) builds the static site and publishes `dist/` to **GitHub Pages** on every push to `main` (or manually via *Run workflow*).
+  - **Deployed to:** [https://luisfff.github.io/sqlplay-live/](https://luisfff.github.io/sqlplay-live/)
+  - **One-time setup:** Pages must be switched to **Settings → Pages → Source: GitHub Actions** before the deploy job can succeed.
+- **E2E is not in CI on purpose.** `e2e.mjs` needs Playwright's Chromium installed and a built `dist/` served by the CLI. It also writes screenshots into `docs/`, so running it in CI as-is would rewrite files in the repo. It can be added later as a separate job.
+- `package.json` still has `homepage: https://sqlplay.vercel.app/`. Update it if Pages becomes the canonical URL.
 
 ---
 
-## Roadmap
+## License
 
-- **Pluggable adapters** so the backend console can point at a real production database (Postgres via PGlite/pg, SQLite via Turso) by swapping the connection.
+[MIT](https://github.com/Yogesh0627/sqlplay/blob/main/LICENSE)
 
 ---
 
-## Author
+## Original Author
 
 **Yogesh Chauhan**
 
 - GitHub: [@Yogesh0627](https://github.com/Yogesh0627)
 - LinkedIn: [yogeshchauhan-dev](https://www.linkedin.com/in/yogeshchauhan-dev/)
-
-## License
-
-[MIT](https://github.com/Yogesh0627/sqlplay/blob/main/LICENSE)
