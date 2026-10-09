@@ -195,6 +195,11 @@ npm run test:e2e   # Playwright end-to-end tests
 npm run docs:er    # regenerate the ER-diagram SVGs in docs/
 ```
 
+### CI & deployment
+
+- **CI** (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`: `npm ci`, `npm run typecheck`, `npm run build`, `npm run build:lib`.
+- **Deployment** (`.github/workflows/deploy-pages.yml`) builds the static site and publishes `dist/` to **GitHub Pages** on every push to `main` (or manually via *Run workflow*). One-time setup: in the repository's **Settings → Pages**, set **Source** to **GitHub Actions**.
+
 ---
 
 ## Roadmap
