@@ -209,7 +209,7 @@ exist.
 JSON-serializable; I map them to a placeholder before sending over the server API.
 
 **localStorage quota.** Saving a large dataset can exceed the browser quota; the
-save is wrapped and surfaces a friendly "storage is full — export to .sqlite"
+save is wrapped and surfaces a friendly "storage is full — try a smaller dataset"
 message instead of throwing.
 
 **FK enforcement.** SQLite has foreign keys **off** by default. I intentionally
@@ -227,7 +227,7 @@ library builds — a reminder that bundler defaults are load-bearing.
 
 **Trade-offs I made (and defend):**
 - **In-memory working DB** → true zero-backend and privacy, at the cost of
-  resetting on refresh. Mitigated with Save-as-dataset and `.sqlite` export.
+  resetting on refresh. Mitigated with Save-as-dataset.
 - **Embed WASM in the library** → zero-config for consumers, at ~860 KB per
   bundle. Right call for a dev tool; I'd offer an opt-out slim build if size
   mattered.
@@ -362,7 +362,7 @@ claiming it's bulletproof.
 **"How is consistency / durability handled?"**
 The working DB is intentionally ephemeral (resets on refresh — same contract as an
 H2 in-memory database). Durability is opt-in and user-driven: Save-as-dataset
-serializes the DB to localStorage, and export writes a real `.sqlite` file. The
+serializes the DB to localStorage. The headless API can export SQLite bytes. The
 server file-mode persists after write statements. There's no multi-writer
 concurrency, so no consistency protocol is needed — a property of the
 single-user, single-process design.
@@ -387,8 +387,8 @@ of type inference. That's the refactor I'd prioritize (see IMPROVEMENTS.md §5).
 - *Uncaught render error* → previously blanked the app; now an `ErrorBoundary`
   shows a recoverable "Try again / Reload" fallback.
 - *Stale table after a dataset swap* → the DataEditor load is now try/caught.
-- *localStorage full* on save → caught, surfaces "export to .sqlite" guidance.
-- *Malformed share link / import file* → caught, ignored / reported; never crashes.
+- *localStorage full* on save → caught, suggests a smaller dataset.
+- *Malformed CSV/JSON import file* → caught and reported; never crashes.
 
 **"What would you monitor if this were a real service?"**
 For the CDN-served app: asset load success, WASM instantiation failures, JS error

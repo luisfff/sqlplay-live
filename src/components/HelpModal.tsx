@@ -123,21 +123,13 @@ function AppHelp() {
           <strong>⭱ Import</strong> a <code>.csv</code> or <code>.json</code>{" "}
           file → auto-creates a table.
         </li>
-        <li>
-          <strong>⭳ .sqlite</strong> downloads the whole database as a real
-          SQLite file.
-        </li>
-        <li>
-          <strong>🔗 Share</strong> copies a link that reproduces the dataset +
-          query (the query text, not imported data).
-        </li>
+        <li>Export query results with the <strong>⭳ CSV</strong> link.</li>
       </ul>
 
       <h3>Resetting &amp; what persists</h3>
       <ul>
         <li>
-          Startup uses <strong>Tasks database</strong>, unless a shared link
-          selects another dataset/query.
+          Startup uses <strong>Tasks database</strong>.
         </li>
         <li>
           <strong>Reset current dataset</strong> restores the selected sample's

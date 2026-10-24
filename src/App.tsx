@@ -18,7 +18,6 @@ import { DataEditor } from "./components/DataEditor";
 import { HelpModal } from "./components/HelpModal";
 import { compareResults, type CompareResult } from "./lib/compare";
 import { csvToSql, jsonToSql } from "./lib/csv";
-import { encodeShareUrl, decodeShareUrl } from "./lib/share";
 import {
   loadHistory,
   pushHistory,
@@ -203,17 +202,12 @@ export default function App() {
       !toTasks && datasetId.startsWith("user:"));
   }, [db, datasetId, currentUserDataset, openDataset]);
 
-  // Boot: honor a shared link if present, else the default dataset.
+  // Boot: load the default dataset.
   useEffect(() => {
     setHistory(loadHistory());
     setSolved(loadSolved());
     setUserDatasets(listUserDatasets());
-    const shared = decodeShareUrl();
-    void openDataset(
-      shared?.datasetId ?? DEFAULT_DATASET_ID,
-      shared?.query,
-      shared ? "Loaded shared query from link." : undefined
-    );
+    void openDataset(DEFAULT_DATASET_ID);
     return () => {
       ++generationRef.current;
       pendingRef.current = false;
@@ -242,31 +236,6 @@ export default function App() {
   const insertSnippet = useCallback((snippet: string) => {
     setQuery((q) => (q.trimEnd() ? q + "\n" + snippet : snippet));
   }, []);
-
-  const downloadDb = useCallback(() => {
-    if (!db || pendingRef.current) return;
-    const bytes = db.export();
-    const blob = new Blob([bytes as unknown as BlobPart], {
-      type: "application/octet-stream",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${datasetId || "database"}.sqlite`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [db, datasetId]);
-
-  const share = useCallback(async () => {
-    if (pendingRef.current) return;
-    const url = encodeShareUrl({ datasetId, query: queryRef.current });
-    try {
-      await navigator.clipboard.writeText(url);
-      setStatus("Shareable link copied to clipboard.");
-    } catch {
-      setStatus(url);
-    }
-  }, [datasetId]);
 
   const onImportFile = useCallback(
     async (file: File) => {
@@ -463,12 +432,6 @@ export default function App() {
             disabled={!db || loading}
           >
             ⭱ Import
-          </button>
-          <button className="btn" onClick={share} disabled={!db || loading}>
-            🔗 Share
-          </button>
-          <button className="btn" onClick={downloadDb} disabled={!db || loading}>
-            ⭳ .sqlite
           </button>
           <button
             className="btn"

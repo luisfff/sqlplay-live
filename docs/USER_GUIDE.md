@@ -19,7 +19,6 @@ zero-backend SQL playground and practice environment for JavaScript.
 6. [Editing data](#6-editing-data) ✅
 7. [Importing & exporting](#7-importing--exporting) ✅
 8. [Creating & saving your own datasets](#8-creating--saving-your-own-datasets) ✅
-9. [Sharing](#9-sharing) ✅
 10. [Challenge mode](#10-challenge-mode) ✅
 11. [Resetting & the data lifecycle](#11-resetting--the-data-lifecycle) ✅
 12. [SQL dialect notes](#12-sql-dialect-notes)
@@ -126,7 +125,7 @@ Press **Ctrl+C** in the terminal to stop the server.
 - **Mode switch** (top): toggle between **Playground** and **Challenges**.
 - **Dataset picker** (Playground only): choose a sample or one of your saved
   datasets.
-- **Toolbar buttons**: Run, Save dataset, History, Import, Share, Export.
+- **Toolbar buttons**: Run, Save dataset, History, Import, Help, and dataset resets.
 - **Sidebar**: the live **schema** (Playground) or the **challenge list**.
 - **Output tabs** (Playground): Results, ER Diagram, Data editor.
 - **Status bar**: shows what just happened, including SQL errors.
@@ -135,7 +134,7 @@ Press **Ctrl+C** in the terminal to stop the server.
 
 ## 4. Playground: querying ✅
 
-1. Choose a dataset from the **Dataset** dropdown (the app starts with *Tasks database*, unless a shared link selects another dataset and query).
+1. Choose a dataset from the **Dataset** dropdown (the app starts with *Tasks database*).
 2. Type SQL in the editor.
 3. Run it with **▶ Run** or **Ctrl/⌘ + Enter**.
 
@@ -203,8 +202,6 @@ what persists.)
 
 - **Result → CSV**: each result block has a **⭳ CSV** link to download that
   result set.
-- **Whole database → `.sqlite`**: toolbar → **⭳ .sqlite** downloads a real
-  SQLite file you can open in any SQLite tool.
 
 ---
 
@@ -257,21 +254,6 @@ so.
 
 ---
 
-## 9. Sharing ✅
-
-Toolbar → **🔗 Share** copies a link to your clipboard. The link encodes the
-**selected dataset and the current query text** in the URL fragment (`#…`), so it
-is reconstructed entirely in the recipient's browser — nothing is sent to a
-server.
-
-> **Important:** a shared link carries the **query text**, not your table data.
-> If you want a link to reproduce a custom schema, make sure the editor contains
-> the full `CREATE TABLE … / INSERT …` script — then running it recreates
-> everything. Data created only via **Import** or the **Data editor** is *not*
-> embedded in the link. (Embedding the full database in a link is 🚧 planned.)
-
----
-
 ## 10. Challenge mode ✅
 
 Switch to **Challenges** in the top bar.
@@ -305,8 +287,7 @@ memory. It is **reset (wiped)** when you:
 Any tables you created, rows you inserted, or edits you made are lost on reset —
 **unless you saved them** (see below). This mirrors an H2 in-memory database.
 
-**To keep your work:** click **💾 Save dataset** (Section 8), or **⭳ .sqlite**
-to download a file.
+**To keep your work:** click **💾 Save dataset** (Section 8).
 
 **To deliberately reset the working DB:** just re-select the current dataset in
 the dropdown, or refresh the page.
@@ -330,8 +311,7 @@ location.reload();
 ```
 
 This removes all saved datasets, history, and solved progress, and reloads a
-clean SQLPlay. (Sharing uses the URL, not storage, so there is nothing to clear
-for that.)
+clean SQLPlay.
 
 ---
 
@@ -372,12 +352,11 @@ Another process holds the port. Run on a different one: `sqlplay --port 8080`.
 Run `npm run build` first; the CLI serves the `dist/` folder.
 
 **My data disappeared after refreshing.**
-That's expected — the working DB is in-memory. **Save dataset** or export to
-`.sqlite` to keep it. See [Section 11](#11-resetting--the-data-lifecycle).
+That's expected — the working DB is in-memory. Use **Save dataset** to keep it.
+See [Section 11](#11-resetting--the-data-lifecycle).
 
 **"Save failed: storage is full."**
-The database is too large for browser `localStorage`. Export to `.sqlite`
-instead, or reduce the data.
+The database is too large for browser `localStorage`. Reduce the data and try again.
 
 **A query that works in Postgres/MySQL/H2 fails here.**
 Dialect difference — SQLPlay is SQLite. See [Section 12](#12-sql-dialect-notes).
