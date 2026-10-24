@@ -48,13 +48,22 @@ This fork includes the following enhancements:
 
 ## Quick Start
 
-Run it instantly — no global install needed:
+To run this fork, open a terminal in your checkout of `luisfff/sqlplay-live`:
 
 ```bash
-npx sqlplay        # npm
-pnpm dlx sqlplay   # pnpm
-bunx sqlplay       # bun
+npm ci
+npm run build
+npm start
 ```
+
+`npm start` serves the local `dist/` build; rebuild and restart after updating
+the source. For development with live updates, use `npm run dev` instead.
+
+**Still seeing “Built by …”?** `npx sqlplay`, `pnpm dlx sqlplay`, `bunx sqlplay`,
+and a globally installed `sqlplay` run the published npm package, not this fork.
+Use the local commands above or the live demo below to run this fork without
+the author credit. If an older local build is still open, stop its server,
+rebuild, restart, and reload the page.
 
 Your browser opens to a full SQL console with the **Tasks database** ready to query.
 Shared links still open their specified dataset and query.
