@@ -71,7 +71,7 @@ window.confirm = () => { window.handles.confirmations++; return true; };
   await balanced();
   assert.match(await page.getByRole("status").innerText(), /Failed to load dataset/);
   await page.getByRole("button", { name: /Run/ }).first().click();
-  assert.equal(await page.locator(".results tbody tr").count(), 35);
+  assert.equal(await page.locator(".results tbody tr").count(), 12);
 
   await page.evaluate(() => {
     window.handles.fail = false;

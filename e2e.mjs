@@ -69,13 +69,15 @@ try {
   ok("Footer retains database status without author credit");
   assert.equal(await page.locator(".controls select").inputValue(), "tasks");
   const starter = await page.locator(".cm-content").innerText();
-  assert.match(starter, /LEFT JOIN user/);
+  assert.equal(starter.trim(), "SELECT id, name, email, phone\nFROM user;");
+  assert.doesNotMatch(starter, /JOIN/i);
   await page.getByRole("button", { name: /Run/ }).first().click();
   await page.waitForSelector(".results table", { timeout: 10000 });
   let rows = await page.locator(".results tbody tr").count();
   rows > 0 ? ok(`Playground run returns rows (${rows})`) : no("Playground run rows", "0 rows");
-  assert.equal(rows, 35);
-  assert.equal(await page.locator(".results .null-cell").filter({ hasText: "NULL" }).count(), 10);
+  assert.equal(rows, 12);
+  assert.deepEqual(await page.locator(".results thead th:not(.rownum)").allInnerTexts(), ["id", "name", "email", "phone"]);
+  assert.equal(await page.locator(".results .null-cell").filter({ hasText: "NULL" }).count(), 2);
 
   await execute("SELECT (SELECT COUNT(*) FROM user), (SELECT COUNT(*) FROM status), (SELECT COUNT(*) FROM task), (SELECT COUNT(*) FROM tag), (SELECT COUNT(*) FROM task_tag);");
   assert.deepEqual(await resultRows(), [["12", "3", "35", "5", "12"]]);
@@ -153,7 +155,7 @@ try {
   await page.locator(".controls select").selectOption("tasks");
   await ready();
   await page.getByRole("button", { name: /Run/ }).first().click();
-  assert.equal(await page.locator(".results tbody tr").count(), 35);
+  assert.equal(await page.locator(".results tbody tr").count(), 12);
   ok("Both reset modes, cancellation, pristine schema/data and repeated resets");
 
   // Clean hero screenshot of the Playground with results.
@@ -327,7 +329,7 @@ try {
   assert.match(await errorPage.getByRole("status").innerText(), /Failed to load dataset/);
   assert.equal(await errorPage.locator(".controls select").inputValue(), "tasks");
   await errorPage.getByRole("button", { name: /Run/ }).first().click();
-  assert.equal(await errorPage.locator(".results tbody tr").count(), 35);
+  assert.equal(await errorPage.locator(".results tbody tr").count(), 12);
   await errorPage.close();
   ok("Failed saved-dataset load preserves the active database");
   const startupErrorPage = await browser.newPage();
