@@ -170,9 +170,9 @@ noise; blobs → placeholder), then:
   sides sorted by stringified row).
 
 Grading both sides on fresh DB copies means a user query that mutates data can't
-poison the comparison. All 50 reference solutions are validated by a script that
-runs them against their datasets and asserts each returns ≥ 1 row and grades as
-a pass against itself.
+poison the comparison. All 18 Tasks reference solutions are validated by a script
+that runs them against the Tasks dataset and asserts each returns ≥ 1 row and
+grades as a pass against itself.
 
 ---
 
@@ -309,7 +309,7 @@ CSS at runtime — consumers import nothing extra.
 - **Server (HTTP)** — spins up the middleware and asserts page serving, query
   API, schema API, file persistence across restart, `readOnly` (including the
   bypass fixes), and `init` from a folder / inline / `resetOnStart`.
-- **Data/logic** — a transpile-and-run harness validates all 50 challenge
+- **Data/logic** — a transpile-and-run harness validates all 18 Tasks challenges
   solutions and the CSV/compare libraries against sql.js.
 
 ---

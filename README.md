@@ -21,7 +21,7 @@ Java has the H2 Console for this. JavaScript didn't have a comparable zero-setup
 This fork includes the following enhancements:
 
 ### 1. **Tasks Database as Default Startup** ([PR #1](https://github.com/luisfff/sqlplay-live/pull/1))
-- The playground now starts with the **Tasks** sample database instead of HR
+- The playground starts with the **Tasks** sample database
 - Complete Tasks schema: `user`, `status`, `task`, `tag`, and `task_tag` (many-to-many) tables
 - Foreign keys with `ON DELETE CASCADE` for data integrity
 - Starter query joins tasks with owner and status information
@@ -101,13 +101,13 @@ sqlplay --help
 - **Import CSV / JSON** — drop a file in and it auto-creates a typed table.
 - **Export** result sets to CSV, or the whole database to a `.sqlite` file.
 - **Shareable links** — the dataset and query are encoded in the URL hash, so nothing is sent to a server.
-- **Sample datasets** — Tasks (default), HR/Employees, E-commerce/Orders, University/Enrollments, or start empty.
+- **Sample dataset** — Tasks, with the option to create and save your own datasets.
 
 ### Challenge Mode
 
 Practice SQL like LeetCode, offline.
 
-- **50 graded problems** (Easy → Hard) across three datasets.
+- **18 graded problems** (Easy → Medium) for the Tasks database.
 - Write a query, hit **Check answer**, and your result set is compared against the reference solution (order-sensitive where it matters, numeric tolerance for floats).
 - Hints, **Show solution**, and solved-progress tracked locally.
 

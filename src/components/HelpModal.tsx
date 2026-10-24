@@ -105,7 +105,7 @@ function AppHelp() {
       <h3>Create &amp; save your own dataset</h3>
       <ol>
         <li>
-          Pick <strong>Empty database</strong>.
+          Use the SQL editor to create tables and insert your own data.
         </li>
         <li>
           Write <code>CREATE TABLE … FOREIGN KEY …</code> and <code>INSERT</code>{" "}

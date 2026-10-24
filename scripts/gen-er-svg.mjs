@@ -3,8 +3,8 @@
 // Single source of truth: src/data/samples.ts (transpiled on the fly), and
 // the same layout constants as src/components/ERDiagram.tsx.
 import initSqlJs from "sql.js";
-import { transform } from "esbuild";
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { build } from "esbuild";
+import { writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -19,10 +19,15 @@ const BOX_W = 200,
   MARGIN = 24;
 
 async function loadSamples() {
-  const ts = await readFile(join(ROOT, "src/data/samples.ts"), "utf8");
-  const { code } = await transform(ts, { loader: "ts", format: "esm" });
+  const { outputFiles } = await build({
+    entryPoints: [join(ROOT, "src/data/samples.ts")],
+    bundle: true,
+    format: "esm",
+    platform: "node",
+    write: false,
+  });
   const mod = await import(
-    "data:text/javascript," + encodeURIComponent(code)
+    "data:text/javascript," + encodeURIComponent(outputFiles[0].text)
   );
   return mod.SAMPLE_DATASETS;
 }

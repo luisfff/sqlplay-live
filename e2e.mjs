@@ -145,21 +145,8 @@ try {
     await execute("SELECT * FROM task ORDER BY id;");
     assert.deepEqual(await resultRows(), pristineTasks);
   }
-  await page.locator(".controls select").selectOption("shop");
-  await ready();
-  await execute("DELETE FROM customers;");
-  await reset("Reset current dataset");
-  assert.equal(await page.locator(".controls select").inputValue(), "shop");
-  await execute("SELECT COUNT(*) FROM customers;");
-  assert.deepEqual(await resultRows(), [["5"]]);
-  await reset("Reset to Tasks database");
-  assert.equal(await page.locator(".controls select").inputValue(), "tasks");
   const sampleOptions = await page.locator(".controls select option").allInnerTexts();
-  assert.ok(sampleOptions.includes("University / Enrollments"));
-  await page.locator(".controls select").selectOption("university");
-  await ready();
-  await execute("SELECT COUNT(*) FROM students;");
-  assert.deepEqual(await resultRows(), [["8"]]);
+  assert.deepEqual(sampleOptions, ["Tasks database"]);
   await page.locator(".controls select").selectOption("tasks");
   await ready();
   await page.getByRole("button", { name: /Run/ }).first().click();
@@ -205,31 +192,8 @@ try {
   assert.equal(await page.locator("table.editable tbody tr").first().locator("input").nth(1).inputValue(), "Wash clothes");
   ok("Reset refreshes Data editor and clears stale selection/draft/feedback");
 
-  // --- Regression: switching dataset while the Data editor tab is open must
-  //     not crash the app. The editor still referenced the previous dataset's
-  //     table, whose load() threw "no such table" and unmounted the whole tree
-  //     (blank page) before load() was wrapped in try/catch. ---
-  const errorsBeforeSwitch = pageErrors.length;
-  await page.locator(".controls select").selectOption("shop");
-  await sleep(500);
-  const appAlive = (await page.locator(".app").count()) > 0;
-  const editorAlive = (await page.locator(".data-editor").count()) > 0;
-  const pickerText = await page.locator(".data-toolbar select").innerText().catch(() => "");
-  const noNewErrors = pageErrors.length === errorsBeforeSwitch;
-  appAlive && editorAlive && noNewErrors && /customers/.test(pickerText)
-    ? ok("Dataset switch on Data editor tab does not crash")
-    : no(
-        "Dataset switch on Data editor tab",
-        `appAlive=${appAlive} editorAlive=${editorAlive} newErrors=${pageErrors
-          .slice(errorsBeforeSwitch)
-          .join("|")} picker="${pickerText.slice(0, 40)}"`
-      );
-
   // --- Create + save a user dataset, then verify persistence across reload ---
   await page.getByRole("button", { name: "Results" }).click();
-  // switch to Empty dataset
-  await page.locator(".controls select").selectOption("empty");
-  await sleep(300);
   await page.locator(".cm-content").click();
   await page.keyboard.press("Control+A");
   await page.keyboard.type(
@@ -246,6 +210,27 @@ try {
     ? ok("Saved dataset appears in dropdown")
     : no("Saved dataset in dropdown", opts.join(","));
   const savedId = await page.locator(".controls select").inputValue();
+  await page.getByRole("button", { name: "Data editor" }).click();
+  await page.waitForSelector("table.editable input", { timeout: 5000 });
+  await page.locator(".data-toolbar select").selectOption("author");
+  const errorsBeforeSwitch = pageErrors.length;
+  await page.locator(".controls select").selectOption("tasks");
+  await sleep(500);
+  const appAlive = (await page.locator(".app").count()) > 0;
+  const editorAlive = (await page.locator(".data-editor").count()) > 0;
+  const pickerText = await page.locator(".data-toolbar select").innerText().catch(() => "");
+  const noNewErrors = pageErrors.length === errorsBeforeSwitch;
+  appAlive && editorAlive && noNewErrors && /task/.test(pickerText)
+    ? ok("Dataset switch on Data editor tab does not crash")
+    : no(
+        "Dataset switch on Data editor tab",
+        `appAlive=${appAlive} editorAlive=${editorAlive} newErrors=${pageErrors
+          .slice(errorsBeforeSwitch)
+          .join("|")} picker="${pickerText.slice(0, 40)}"`
+      );
+  await page.locator(".controls select").selectOption(savedId);
+  await ready();
+  await page.getByRole("button", { name: "Results" }).click();
   const savedSnapshot = await page.evaluate(() => localStorage.getItem("sqlplay.userDatasets.v1"));
   await execute("UPDATE author SET name = 'unsaved'; CREATE TABLE unsaved (id INTEGER);");
   await reset("Reset current dataset");
@@ -299,12 +284,12 @@ try {
   await ready();
   assert.equal(await page.locator(".controls select").inputValue(), "tasks");
 
-  const shared = Buffer.from(JSON.stringify({ datasetId: "hr", query: "SELECT name FROM employees;" })).toString("base64url");
+  const shared = Buffer.from(JSON.stringify({ datasetId: "tasks", query: "SELECT id, title FROM task ORDER BY id;" })).toString("base64url");
   await page.goto(`${BASE}#s=${shared}`, { waitUntil: "networkidle" });
   await page.reload({ waitUntil: "networkidle" });
   await ready();
-  assert.equal(await page.locator(".controls select").inputValue(), "hr");
-  assert.equal(await page.locator(".cm-content").innerText(), "SELECT name FROM employees;");
+  assert.equal(await page.locator(".controls select").inputValue(), "tasks");
+  assert.equal(await page.locator(".cm-content").innerText(), "SELECT id, title FROM task ORDER BY id;");
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.reload({ waitUntil: "networkidle" });
   await ready();
@@ -323,25 +308,24 @@ try {
   assert.equal(await page.locator(".cm-content").innerText(), starter);
   ok("Missing/deleted saved datasets fall back to Tasks");
 
-  // Inject a seed error after CREATE succeeds, using the built app's existing asset.
+  // A corrupt saved database must not replace the active Tasks database.
   const errorPage = await browser.newPage();
-  await errorPage.route("**/assets/*.js", async (route) => {
-    const response = await route.fetch();
-    const body = await response.text();
-    await route.fulfill({ response, body: body.replace(
-      "INSERT INTO departments (", "INVALID SEED SQL; INSERT INTO departments ("
-    ) });
+  await errorPage.addInitScript(() => {
+    localStorage.setItem(
+      "sqlplay.userDatasets.v1",
+      JSON.stringify([{ id: "broken", name: "Broken", createdAt: Date.now(), b64: btoa("not a SQLite database") }])
+    );
   });
   await errorPage.goto(BASE, { waitUntil: "networkidle" });
   await errorPage.waitForFunction(() => !document.querySelector(".controls select")?.disabled);
-  await errorPage.locator(".controls select").selectOption("hr");
+  await errorPage.locator(".controls select").selectOption("user:broken");
   await errorPage.waitForFunction(() => !document.querySelector(".controls select")?.disabled);
   assert.match(await errorPage.getByRole("status").innerText(), /Failed to load dataset/);
   assert.equal(await errorPage.locator(".controls select").inputValue(), "tasks");
   await errorPage.getByRole("button", { name: /Run/ }).first().click();
   assert.equal(await errorPage.locator(".results tbody tr").count(), 35);
   await errorPage.close();
-  ok("StatementOutcome seed errors preserve active database instead of claiming success");
+  ok("Failed saved-dataset load preserves the active database");
   const startupErrorPage = await browser.newPage();
   await startupErrorPage.route("**/assets/*.js", async (route) => {
     const response = await route.fetch();
@@ -362,15 +346,15 @@ try {
   // --- Challenge mode: solve a challenge, expect green pass ---
   await page.getByRole("button", { name: "Challenges" }).click();
   await page.waitForSelector(".challenge-list", { timeout: 5000 });
-  // pick "List employee names" (hr-1) — scope to the sidebar list
+  // Pick a Tasks challenge — scope to the sidebar list.
   await page
-    .locator(".challenge-list li", { hasText: "List employee names" })
+    .locator(".challenge-list li", { hasText: "Task titles and IDs" })
     .first()
     .click();
   await sleep(400);
   await page.locator(".cm-content").click();
   await page.keyboard.press("Control+A");
-  await page.keyboard.type("SELECT name FROM employees;");
+  await page.keyboard.type("SELECT id, title FROM task ORDER BY id;");
   await page.getByRole("button", { name: /Check answer/ }).click();
   await page.waitForSelector(".challenge-feedback", { timeout: 5000 });
   const fb = await page.locator(".challenge-feedback").innerText();
@@ -382,7 +366,7 @@ try {
   // Wrong answer should FAIL
   await page.locator(".cm-content").click();
   await page.keyboard.press("Control+A");
-  await page.keyboard.type("SELECT name FROM employees WHERE salary > 999999;");
+  await page.keyboard.type("SELECT id, title FROM task WHERE id < 0;");
   await page.getByRole("button", { name: /Check answer/ }).click();
   await sleep(500);
   const fb2Class = await page.locator(".challenge-feedback").getAttribute("class");
