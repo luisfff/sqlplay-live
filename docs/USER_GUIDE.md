@@ -17,7 +17,7 @@ zero-backend SQL playground and practice environment for JavaScript.
 4. [Playground: querying](#4-playground-querying) ✅
 5. [Exploring the schema](#5-exploring-the-schema) ✅
 6. [Editing data](#6-editing-data) ✅
-7. [Importing & exporting](#7-importing--exporting) ✅
+7. [Exporting](#7-exporting) ✅
 8. [Creating & saving your own datasets](#8-creating--saving-your-own-datasets) ✅
 10. [Challenge mode](#10-challenge-mode) ✅
 11. [Resetting & the data lifecycle](#11-resetting--the-data-lifecycle) ✅
@@ -125,7 +125,7 @@ Press **Ctrl+C** in the terminal to stop the server.
 - **Mode switch** (top): toggle between **Playground** and **Challenges**.
 - **Dataset picker** (Playground only): choose a sample or one of your saved
   datasets.
-- **Toolbar buttons**: Run, Save dataset, History, Import, Help, and dataset resets.
+- **Toolbar buttons**: Run, Save dataset, History, Help, and dataset resets.
 - **Sidebar**: the live **schema** (Playground) or the **challenge list**.
 - **Output tabs** (Playground): Results, ER Diagram, Data editor.
 - **Status bar**: shows what just happened, including SQL errors.
@@ -190,13 +190,7 @@ what persists.)
 
 ---
 
-## 7. Importing & exporting ✅
-
-**Import** (toolbar → **⭱ Import**):
-
-- Select a **`.csv`** or **`.json`** file.
-- SQLPlay infers column types and auto-creates a table named after the file,
-  then loads the rows. JSON must be an array of objects.
+## 7. Exporting ✅
 
 **Export:**
 

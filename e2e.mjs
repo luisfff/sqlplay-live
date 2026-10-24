@@ -53,18 +53,15 @@ try {
   // --- Playground: default Tasks dataset loads + starter query runs ---
   await page.waitForSelector(".schema-tree", { timeout: 15000 });
   await ready();
-  assert.equal(await page.getByRole("button", { name: /Share|\.sqlite/i }).count(), 0);
-  assert.equal(await page.locator('input[type="file"]').getAttribute("accept"), ".csv,.json");
-  await page.getByRole("button", { name: /Import/ }).click();
-  await page.locator('input[type="file"]').setInputFiles({
-    name: "retained_import.csv", mimeType: "text/csv",
-    buffer: Buffer.from("id,name\n1,Retained\n"),
-  });
-  await page.waitForFunction(() => document.querySelector(".status-text").textContent.includes('Imported "retained_import.csv"'));
-  await execute("SELECT * FROM retained_import;");
-  assert.deepEqual(await resultRows(), [["1", "Retained"]]);
-  await reset("Reset to Tasks database");
-  ok("Share and sqlite controls removed; CSV import retained");
+  assert.equal(await page.getByRole("button", { name: /Share|\.sqlite|Import/i }).count(), 0);
+  assert.equal(await page.locator('input[type="file"]').count(), 0);
+  assert.deepEqual(
+    await page.locator(".controls > button").allTextContents().then((labels) =>
+      labels.slice(-2).map((label) => label.trim())
+    ),
+    ["🕑 History", "❓ Help"]
+  );
+  ok("Share, sqlite and Import controls removed; History and Help remain adjacent");
   const footer = page.locator("footer.statusbar");
   assert.equal(await footer.locator(".footer-credit, a").count(), 0);
   assert.doesNotMatch(await footer.innerText(), /built\s+by/i);
@@ -126,12 +123,7 @@ try {
   await execute("SELECT * FROM task ORDER BY id;");
   const pristineTasks = await resultRows();
   await execute("UPDATE task SET title = 'Changed' WHERE id = 1; DELETE FROM task WHERE id = 2; INSERT INTO tag VALUES (6, 'Extra'); DROP TABLE task_tag; CREATE TABLE extra (id INTEGER);");
-  await page.locator('input[type="file"]').setInputFiles({
-    name: "reset_import.json", mimeType: "application/json",
-    buffer: Buffer.from('[{"id":1,"name":"Imported"}]'),
-  });
-  await page.waitForFunction(() => document.querySelector(".status-text").textContent.includes('Imported "reset_import.json"'));
-  assert.match(await page.locator(".schema-tree").innerText(), /reset_import/);
+  assert.match(await page.locator(".schema-tree").innerText(), /extra/);
   const beforeCancel = await page.locator(".schema-tree").innerText();
   const queryBeforeCancel = await page.locator(".cm-content").innerText();
   const resultsBeforeCancel = await page.locator(".results").innerText();
@@ -153,7 +145,6 @@ try {
     assert.equal(await page.locator(".cm-content").innerText(), starter);
     assert.equal(await page.locator(".results").count(), 0);
     assert.doesNotMatch(await page.locator(".schema-tree").innerText(), /extra/);
-    assert.doesNotMatch(await page.locator(".schema-tree").innerText(), /reset_import/);
     await execute("SELECT * FROM task ORDER BY id;");
     assert.deepEqual(await resultRows(), pristineTasks);
   }
@@ -358,6 +349,8 @@ try {
 
   // --- Challenge mode: solve a challenge, expect green pass ---
   await page.getByRole("button", { name: "Challenges" }).click();
+  assert.equal(await page.getByRole("button", { name: /Import/i }).count(), 0);
+  assert.equal(await page.locator('input[type="file"]').count(), 0);
   await page.waitForSelector(".challenge-list", { timeout: 5000 });
   // Pick a Tasks challenge — scope to the sidebar list.
   await page
@@ -497,7 +490,7 @@ try {
 
   // --- Help modal opens and toggles ---
   await page.getByRole("button", { name: /Help/ }).click();
-  assert.doesNotMatch(await page.locator(".modal-body").innerText(), /Share|\.sqlite/i);
+  assert.doesNotMatch(await page.locator(".modal-body").innerText(), /Share|\.sqlite|Import/i);
   await page.waitForSelector(".modal", { timeout: 3000 });
   await page.getByRole("button", { name: "Install & embed" }).click();
   const helpText = await page.locator(".modal-body").innerText();
