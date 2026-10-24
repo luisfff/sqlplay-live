@@ -10,7 +10,7 @@ classes from a generic pentest matrix are **not applicable**: authentication
 bypass, authorization / broken access control, IDOR, CSRF, JWT/session
 handling, privilege escalation, server-side rate limiting. They're listed as
 N/A in the summary rather than faked. The real attack surface is: the SQL/data
-parsers, the share-link decoder, result rendering (XSS), and the **optional**
+parsers, result rendering (XSS), and the **optional**
 `sqlplay/server` Express middleware (the only component with an HTTP boundary).
 
 Severity uses: **High** (integrity/RCE-ish within the app's trust boundary),
@@ -36,8 +36,6 @@ Severity uses: **High** (integrity/RCE-ish within the app's trust boundary),
   `<img src=x onerror=alert(1)>` as a cell value renders as inert text.
 - **JSON import** — types a mixed column as `TEXT` and quotes values; the same
   payload that broke CSV import is safely quoted here.
-- **Share-link decode** — malformed / non-JSON / bad-base64 `#s=` payloads are
-  caught and return `null`; the decoder type-checks `datasetId`/`query`.
 - **`splitStatements`** — semicolons inside quotes/comments do not create a false
   split, so the multi-statement read-only guard can't be fooled that way.
 

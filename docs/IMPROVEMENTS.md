@@ -15,8 +15,7 @@ reviewer would raise in a production readiness review.
   renders as escaped children. Security by default, not by remembering to escape.
 - **Correct-by-design pieces:** the quote/comment-aware `splitStatements`, the
   `rowid`-keyed editable grid (works without a declared PK), fresh-DB challenge
-  grading (a mutating answer can't skew the comparison), and type-checked
-  share-link decoding.
+  grading (a mutating answer can't skew the comparison).
 - **Honest disclaimers.** The read-only guard is documented as "pragmatic, not a
   parser — mount behind auth," which is exactly right.
 
@@ -25,7 +24,7 @@ reviewer would raise in a production readiness review.
 ## Quick wins (hours)
 
 1. **Add a `vitest` unit suite.** The project's highest-leverage gap. The pure
-   logic — `csv.ts`, `share.ts`, `compare.ts`, `splitStatements`, and the server
+   logic — `csv.ts`, `compare.ts`, `splitStatements`, and the server
    `isReadOnlyStatement` guard — is perfectly unit-testable, runs in milliseconds,
    and would have caught the CSV-import injection (#1) immediately. Pin findings
    #1–#5 as regression tests. *This is the #1 recommendation.*
@@ -73,7 +72,6 @@ reviewer would raise in a production readiness review.
 |------|---------|
 | Client XSS | ✅ Safe by construction (React escaping, no `innerHTML`) |
 | SQL injection via import | ✅ Fixed (was High in CSV path) |
-| Share-link tampering | ✅ Guarded (type-checked, try/caught) |
 | Server `readOnly` guard | ✅ Tightened (PRAGMA bypass closed); ⚠️ still regex-based |
 | Server DoS (runaway query) | ⚠️ Open — needs worker + timeout |
 | CSV export formula injection | ⚠️ Documented — data-integrity tradeoff |

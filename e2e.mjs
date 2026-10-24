@@ -53,6 +53,18 @@ try {
   // --- Playground: default Tasks dataset loads + starter query runs ---
   await page.waitForSelector(".schema-tree", { timeout: 15000 });
   await ready();
+  assert.equal(await page.getByRole("button", { name: /Share|\.sqlite/i }).count(), 0);
+  assert.equal(await page.locator('input[type="file"]').getAttribute("accept"), ".csv,.json");
+  await page.getByRole("button", { name: /Import/ }).click();
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "retained_import.csv", mimeType: "text/csv",
+    buffer: Buffer.from("id,name\n1,Retained\n"),
+  });
+  await page.waitForFunction(() => document.querySelector(".status-text").textContent.includes('Imported "retained_import.csv"'));
+  await execute("SELECT * FROM retained_import;");
+  assert.deepEqual(await resultRows(), [["1", "Retained"]]);
+  await reset("Reset to Tasks database");
+  ok("Share and sqlite controls removed; CSV import retained");
   const footer = page.locator("footer.statusbar");
   assert.equal(await footer.locator(".footer-credit, a").count(), 0);
   assert.doesNotMatch(await footer.innerText(), /built\s+by/i);
@@ -284,21 +296,22 @@ try {
   await ready();
   assert.equal(await page.locator(".controls select").inputValue(), "tasks");
 
-  const shared = Buffer.from(JSON.stringify({ datasetId: "tasks", query: "SELECT id, title FROM task ORDER BY id;" })).toString("base64url");
-  await page.goto(`${BASE}#s=${shared}`, { waitUntil: "networkidle" });
-  await page.reload({ waitUntil: "networkidle" });
-  await ready();
-  assert.equal(await page.locator(".controls select").inputValue(), "tasks");
-  assert.equal(await page.locator(".cm-content").innerText(), "SELECT id, title FROM task ORDER BY id;");
+  for (const fragment of [
+    Buffer.from(JSON.stringify({ datasetId: "shop", query: "SELECT 'legacy link';" })).toString("base64url"),
+    Buffer.from(JSON.stringify({ datasetId: savedId, query: "SELECT * FROM author;" })).toString("base64url"),
+    "not-valid-json",
+  ]) {
+    await page.goto(`${BASE}#s=${fragment}`, { waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "networkidle" });
+    await ready();
+    assert.equal(await page.locator(".controls select").inputValue(), "tasks");
+    assert.equal(await page.locator(".cm-content").innerText(), starter);
+    assert.doesNotMatch(await page.getByRole("status").innerText(), /shared/i);
+  }
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.reload({ waitUntil: "networkidle" });
   await ready();
-  ok("Default startup and intentional shared-link dataset/query overrides");
-  const missingSaved = Buffer.from(JSON.stringify({ datasetId: "user:missing", query: "SELECT COUNT(*) FROM task;" })).toString("base64url");
-  await page.goto(`${BASE}#s=${missingSaved}`, { waitUntil: "networkidle" });
-  await page.reload({ waitUntil: "networkidle" });
-  await ready();
-  assert.equal(await page.locator(".controls select").inputValue(), "tasks");
+  ok("Legacy share links no longer override the default dataset or query");
   await page.locator(".controls select").selectOption(savedId);
   await ready();
   page.once("dialog", (dialog) => dialog.accept());
@@ -484,6 +497,7 @@ try {
 
   // --- Help modal opens and toggles ---
   await page.getByRole("button", { name: /Help/ }).click();
+  assert.doesNotMatch(await page.locator(".modal-body").innerText(), /Share|\.sqlite/i);
   await page.waitForSelector(".modal", { timeout: 3000 });
   await page.getByRole("button", { name: "Install & embed" }).click();
   const helpText = await page.locator(".modal-body").innerText();

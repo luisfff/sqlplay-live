@@ -319,7 +319,7 @@ CSS at runtime — consumers import nothing extra.
 | Decision | Why | Cost |
 |---|---|---|
 | SQLite (sql.js) not Postgres | zero-setup, ubiquitous, WASM-ready | dialect ≠ other DBs |
-| In-memory working DB | true zero-backend, offline, private | resets on refresh (mitigated by save/export) |
+| In-memory working DB | true zero-backend, offline, private | resets on refresh (mitigated by saved datasets) |
 | Embed WASM in the library | works in any bundler with no config | +~860 KB bundle |
 | One engine, injectable loader | one codebase → 4 delivery modes | a small indirection |
 | FK enforcement OFF by default | forgiving for learners | FKs declared but not enforced |
