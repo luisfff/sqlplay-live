@@ -17,7 +17,6 @@ import { ERDiagram } from "./components/ERDiagram";
 import { DataEditor } from "./components/DataEditor";
 import { HelpModal } from "./components/HelpModal";
 import { compareResults, type CompareResult } from "./lib/compare";
-import { csvToSql, jsonToSql } from "./lib/csv";
 import {
   loadHistory,
   pushHistory,
@@ -91,7 +90,6 @@ export default function App() {
   const queryRef = useRef<string>("");
   queryRef.current = query;
   const selectionRef = useRef<string>("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const activeDbRef = useRef<InMemoryDatabase | null>(null);
   const pendingRef = useRef(false);
   const generationRef = useRef(0);
@@ -236,36 +234,6 @@ export default function App() {
   const insertSnippet = useCallback((snippet: string) => {
     setQuery((q) => (q.trimEnd() ? q + "\n" + snippet : snippet));
   }, []);
-
-  const onImportFile = useCallback(
-    async (file: File) => {
-      if (!db || pendingRef.current) return;
-      pendingRef.current = true;
-      setLoading(true);
-      const generation = generationRef.current;
-      try {
-        const text = await file.text();
-        if (generation !== generationRef.current) return;
-        const sql = file.name.toLowerCase().endsWith(".json")
-          ? jsonToSql(file.name, text)
-          : csvToSql(file.name, text);
-        const result = db.run(sql);
-        const err = result.find((r) => r.error);
-        refreshSchema(db);
-        setStatus(
-          err ? `Import failed: ${err.error}` : `Imported "${file.name}".`
-        );
-      } catch (e) {
-        setStatus(`Import failed: ${e instanceof Error ? e.message : e}`);
-      } finally {
-        if (generation === generationRef.current) {
-          pendingRef.current = false;
-          setLoading(false);
-        }
-      }
-    },
-    [db, refreshSchema]
-  );
 
   const selectChallenge = useCallback(
     async (c: Challenge) => {
@@ -428,29 +396,11 @@ export default function App() {
           </button>
           <button
             className="btn"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={!db || loading}
-          >
-            ⭱ Import
-          </button>
-          <button
-            className="btn"
             onClick={() => setShowHelp(true)}
             title="Help & documentation"
           >
             ❓ Help
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.json"
-            style={{ display: "none" }}
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) onImportFile(f);
-              e.target.value = "";
-            }}
-          />
         </div>
       </header>
 

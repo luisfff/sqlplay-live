@@ -117,12 +117,8 @@ function AppHelp() {
         </li>
       </ol>
 
-      <h3>Import &amp; export</h3>
+      <h3>Export</h3>
       <ul>
-        <li>
-          <strong>⭱ Import</strong> a <code>.csv</code> or <code>.json</code>{" "}
-          file → auto-creates a table.
-        </li>
         <li>Export query results with the <strong>⭳ CSV</strong> link.</li>
       </ul>
 
