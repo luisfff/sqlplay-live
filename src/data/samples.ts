@@ -18,12 +18,8 @@ export const SAMPLE_DATASETS: SampleDataset[] = [
     name: "Tasks database",
     description: "Tasks, assigned users, statuses and tags. Practice JOINs, nullable assignments and cascading foreign keys.",
     sql: TASKS_SQL,
-    starterQuery: `SELECT t.id, t.title, s.name AS status, u.name AS assigned_user,
-       t.due_date
-FROM task t
-JOIN status s ON s.id = t.status_id
-LEFT JOIN user u ON u.id = t.user_id
-ORDER BY t.id;`,
+    starterQuery: `SELECT id, name, email, phone
+FROM user;`,
   },
 ];
 
