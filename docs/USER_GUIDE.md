@@ -214,7 +214,8 @@ You can build a complete schema from scratch and keep it.
 
 **Walkthrough:**
 
-1. Set the dataset to **Empty database**.
+1. Use the SQL editor to create your tables and insert your data. You can add
+   them alongside the Tasks tables or drop the existing tables first.
 2. Write your schema and data in the editor, e.g.:
 
    ```sql
@@ -275,8 +276,8 @@ server.
 
 Switch to **Challenges** in the top bar.
 
-- The sidebar lists 50 problems grouped by dataset, each tagged Easy / Medium /
-  Hard (colored dot) with a ✓ once solved. A progress bar shows how many you've
+- The sidebar lists 18 Tasks database problems, each tagged Easy or Medium
+  (colored dot) with a ✓ once solved. A progress bar shows how many you've
   solved.
 - Click a challenge to load its dataset and read the prompt.
 - Write your query, then click **✓ Check answer** (or **Ctrl/⌘ + Enter**).

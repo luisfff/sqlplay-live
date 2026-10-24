@@ -15,7 +15,7 @@ and rapid-fire answers. Pair with [ARCHITECTURE.md](ARCHITECTURE.md).
 > "SQLPlay is a zero-backend SQL workbench. It runs a real SQLite database
 > compiled to WebAssembly entirely in the browser, so you can practice, prototype,
 > and query data with no server and no setup. On top of the engine I built a
-> console — a playground, 50 auto-graded SQL challenges, an auto-generated ER
+> console — a playground, 18 auto-graded Tasks database challenges, an auto-generated ER
 > diagram, and an editable data grid — and I packaged the same core four ways from
 > one codebase: a CLI (`npx sqlplay`), a headless npm library, an embeddable React
 > component, and an H2-style backend middleware you mount into an Express app. It's
@@ -94,7 +94,7 @@ copy for the reference solution, then compare result sets. Comparison normalizes
 cells (floats rounded to 4 decimals), checks column and row counts, and compares
 rows in order if ordering matters, otherwise as a multiset (both sides sorted).
 Grading on fresh copies means a user query that mutates data can't skew the
-comparison. I also wrote a validation script that runs all 50 solutions and
+comparison. I also wrote a validation script that runs all 18 Tasks solutions and
 asserts each returns rows and passes against itself — so the answer key can't rot.
 
 **Q: How does the editable data grid write changes back?**
@@ -274,7 +274,7 @@ an injectable `configureEngine()`. That one decision turned a single app into a
 package with headless, React, and server entry points.
 
 **"How did you ensure quality?"**
-Layered verification: a data harness that validates all 50 challenge solutions,
+Layered verification: a data harness that validates all 18 Tasks challenge solutions,
 HTTP tests for the server (including the security fixes), and a Playwright suite
 that drives the real browser through every feature including persistence across a
 reload. I don't claim something works until I've exercised it.
@@ -310,7 +310,7 @@ Interviewers often pivot from the project to fundamentals. Be ready on:
 | Lines of "backend"? | None for the app — it's client-side WASM. The optional server mode is ~250 lines of Node middleware. |
 | Bundle size? | App JS ~660 KB (mostly the SQLite WASM); library embeds the same WASM. |
 | SQLite version? | 3.49 (whatever sql.js ships). |
-| How many challenges? | 50, across 3 datasets, Easy→Hard, auto-graded. |
+| How many challenges? | 18 for the Tasks database, Easy→Medium, auto-graded. |
 | How is state stored? | In-memory DB + three localStorage keys (history, solved, saved datasets). |
 | Is it published? | Package is publish-ready with `exports` for `.`, `./react`, `./server`, plus a CLI `bin`. |
 | Tests? | Playwright e2e (12 checks, incl. a crash regression test), HTTP probes for the server guard, and a solution-validation harness. Unit tests (vitest) are the top recommended add. |
