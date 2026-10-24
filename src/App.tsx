@@ -3,6 +3,7 @@ import {
   InMemoryDatabase,
   lastResultSet,
   type ForeignKey,
+  type QueryResult,
   type StatementOutcome,
   type TableInfo,
 } from "./engine/db";
@@ -49,6 +50,22 @@ async function freshDatasetDb(datasetId: string): Promise<InMemoryDatabase> {
     db.reset();
     throw err;
   }
+}
+
+function compareDatabaseStates(
+  expected: QueryResult[],
+  actual: QueryResult[]
+): CompareResult {
+  if (
+    expected.length !== actual.length ||
+    expected.some((result, index) => !compareResults(result, actual[index], false).pass)
+  ) {
+    return {
+      pass: false,
+      reason: "The database schema or data doesn't match the expected changes.",
+    };
+  }
+  return { pass: true, reason: "Correct! The database changes match exactly." };
 }
 
 export default function App() {
@@ -312,9 +329,17 @@ export default function App() {
       }
       expDb = await freshDatasetDb(activeChallenge.datasetId);
       if (generation !== generationRef.current) return;
-      const expected = lastResultSet(expDb.run(activeChallenge.solution));
-      const actual = lastResultSet(userOutcomes);
-      const cmp = compareResults(expected, actual, activeChallenge.orderMatters);
+      const expectedOutcomes = expDb.run(activeChallenge.solution);
+      const expectedError = expectedOutcomes.find((outcome) => outcome.error);
+      const cmp = expectedError
+        ? { pass: false, reason: `Reference solution error: ${expectedError.error}` }
+        : activeChallenge.checkDatabaseState
+        ? compareDatabaseStates(expDb.snapshot(), userDb.snapshot())
+        : compareResults(
+            lastResultSet(expectedOutcomes),
+            lastResultSet(userOutcomes),
+            activeChallenge.orderMatters
+          );
       setFeedback(cmp);
       if (cmp.pass) {
         setSolved(markSolved(activeChallenge.id));

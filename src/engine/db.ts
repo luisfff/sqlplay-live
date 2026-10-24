@@ -202,6 +202,39 @@ export class InMemoryDatabase {
     return r.length > 0 ? { columns: r[0].columns, rows: r[0].values } : null;
   }
 
+  /** Capture schema metadata and table/view contents for state-based grading. */
+  snapshot(): QueryResult[] {
+    const state: QueryResult[] = [];
+    const objects = this.query(
+      `SELECT type, name, tbl_name FROM sqlite_master
+       WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name`
+    );
+    if (!objects) return state;
+    state.push(objects);
+
+    for (const [type, name] of objects.rows as [string, string, string][]) {
+      const quotedName = `"${name.replace(/"/g, '""')}"`;
+      if (type === "table") {
+        for (const pragma of ["table_info", "foreign_key_list", "index_list"]) {
+          const result = this.query(`PRAGMA ${pragma}(${quotedName})`);
+          if (result) {
+            state.push(result);
+            if (pragma === "index_list") {
+              for (const [indexName] of result.rows) {
+                const quotedIndex = `"${String(indexName).replace(/"/g, '""')}"`;
+                const indexInfo = this.query(`PRAGMA index_info(${quotedIndex})`);
+                if (indexInfo) state.push(indexInfo);
+              }
+            }
+          }
+        }
+      }
+      const contents = this.query(`SELECT * FROM ${quotedName}`);
+      if (contents) state.push(contents);
+    }
+    return state;
+  }
+
   /** Run a parameterized write statement (UPDATE/INSERT/DELETE). */
   mutate(sql: string, params: unknown[] = []): void {
     this.db.run(sql, params as never[]);

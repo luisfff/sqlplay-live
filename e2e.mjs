@@ -2,6 +2,8 @@ import { chromium } from "playwright";
 import { spawn } from "node:child_process";
 import { setTimeout as sleep } from "node:timers/promises";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import ts from "typescript";
 
 const PORT = 4655;
 const BASE = `http://127.0.0.1:${PORT}/`;
@@ -387,9 +389,111 @@ try {
   fb2Class.includes("fail")
     ? ok("Challenge wrong answer -> FAIL feedback")
     : no("Challenge fail", fb2Class);
-  const solvedBeforeReset = await page.evaluate(() => localStorage.getItem("sqlplay.solved.v1"));
   assert.equal(await page.getByRole("button", { name: "Reset to Tasks database", exact: true }).count(), 0);
+
+  const challengeSource = await readFile(
+    new URL("./src/data/challenges.ts", import.meta.url),
+    "utf8"
+  );
+  const challengeModule = await import(
+    `data:text/javascript;base64,${Buffer.from(
+      ts.transpile(challengeSource, { module: ts.ModuleKind.ES2022 })
+    ).toString("base64")}`
+  );
+  const tasksChallenges = challengeModule.CHALLENGES.filter(
+    (challenge) => challenge.datasetId === "tasks"
+  );
+  const tasksChallengeMetadata = {
+    ids: tasksChallenges.map((challenge) => challenge.id),
+    joins: tasksChallenges
+      .filter((challenge) => /\bJOIN\b/i.test(challenge.solution))
+      .map((challenge) => challenge.id),
+  };
+  assert.equal(tasksChallengeMetadata.ids.length, 18);
+  assert.equal(new Set(tasksChallengeMetadata.ids).size, 18);
+  assert.ok(tasksChallengeMetadata.ids.every((id) => id.startsWith("tasks-")));
+  assert.deepEqual(tasksChallengeMetadata.joins, ["tasks-16", "tasks-17", "tasks-18"]);
+  const tasksGroup = page.locator(".challenge-group").filter({ hasText: "Tasks database" });
+  assert.equal(await tasksGroup.locator("li").count(), 18);
+  const tasksTitles = [
+    "Task titles and IDs",
+    "Tasks in progress",
+    "Tasks without due dates",
+    "Tasks alphabetically",
+    "Five highest task IDs",
+    "Unassigned tasks",
+    "Count the tasks",
+    "Rename a task",
+    "Mark a task done",
+    "Assign an unassigned task",
+    "Set unassigned task status",
+    "Delete one task",
+    "Remove one task tag",
+    "Create task notes table",
+    "Create reminders table",
+    "Tasks and their statuses",
+    "Tasks and assigned users",
+    "Tasks and tags",
+  ];
+  for (const title of tasksTitles) {
+    await tasksGroup.locator("li").filter({ hasText: title }).click();
+    await page.waitForFunction(
+      (selectedTitle) => document.querySelector(".challenge-head strong")?.textContent?.includes(selectedTitle),
+      title
+    );
+    await page.getByRole("button", { name: "Show solution" }).click();
+    await page.getByRole("button", { name: /Check answer/ }).click();
+    await page.waitForFunction(() =>
+      document.querySelector(".challenge-feedback")?.classList.contains("pass")
+    );
+  }
+  ok("Tasks challenge IDs, dataset, exactly three JOINs, and all 18 reference solutions");
+
+  const answerChallengeWith = async (title, sql) => {
+    await tasksGroup.locator("li").filter({ hasText: title }).click();
+    await page.waitForFunction(
+      (selectedTitle) => document.querySelector(".challenge-head strong")?.textContent?.includes(selectedTitle),
+      title
+    );
+    await page.locator(".cm-content").click();
+    await page.keyboard.press("Control+A");
+    await page.keyboard.type(sql);
+    await page.getByRole("button", { name: /Check answer/ }).click();
+    await page.waitForFunction(() => document.querySelector(".challenge-feedback"));
+    return page.locator(".challenge-feedback").getAttribute("class");
+  };
+  assert.match(
+    await answerChallengeWith("Rename a task", "SELECT id, title FROM task WHERE id = 1;"),
+    /fail/
+  );
+  assert.match(
+    await answerChallengeWith(
+      "Rename a task",
+      "UPDATE task SET title = 'Wash the laundry' WHERE id = 2;"
+    ),
+    /fail/
+  );
+  await tasksGroup.locator("li").filter({ hasText: "Rename a task" }).click();
+  await page.waitForFunction(() =>
+    document.querySelector(".challenge-head strong")?.textContent?.includes("Rename a task")
+  );
+  await page.getByRole("button", { name: "Show solution" }).click();
+  for (let retry = 0; retry < 2; retry++) {
+    await page.getByRole("button", { name: /Check answer/ }).click();
+    await page.waitForFunction(() =>
+      document.querySelector(".challenge-feedback")?.classList.contains("pass")
+    );
+  }
+  assert.match(
+    await answerChallengeWith("Create task notes table", "CREATE TABLE task_note (id INTEGER);"),
+    /fail/
+  );
   await page.getByRole("button", { name: "Playground", exact: true }).click();
+  await execute("SELECT title FROM task WHERE id = 1;");
+  assert.deepEqual(await resultRows(), [["Wash clothes"]]);
+  ok("Mutation/DDL no-op and wrong answers fail; correct changes retry safely and stay isolated");
+
+  const solvedBeforeReset = await page.evaluate(() => localStorage.getItem("sqlplay.solved.v1"));
   await reset("Reset to Tasks database");
   assert.equal(await page.evaluate(() => localStorage.getItem("sqlplay.solved.v1")), solvedBeforeReset);
   ok("Challenge behavior and solved progress survive Playground resets");
