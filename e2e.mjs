@@ -147,6 +147,14 @@ try {
   assert.deepEqual(await resultRows(), [["5"]]);
   await reset("Reset to Tasks database");
   assert.equal(await page.locator(".controls select").inputValue(), "tasks");
+  const sampleOptions = await page.locator(".controls select option").allInnerTexts();
+  assert.ok(sampleOptions.includes("University / Enrollments"));
+  await page.locator(".controls select").selectOption("university");
+  await ready();
+  await execute("SELECT COUNT(*) FROM students;");
+  assert.deepEqual(await resultRows(), [["8"]]);
+  await page.locator(".controls select").selectOption("tasks");
+  await ready();
   await page.getByRole("button", { name: /Run/ }).first().click();
   assert.equal(await page.locator(".results tbody tr").count(), 35);
   ok("Both reset modes, cancellation, pristine schema/data and repeated resets");

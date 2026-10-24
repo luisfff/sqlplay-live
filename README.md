@@ -1,18 +1,18 @@
 # SQLPlay Live
 
-A fork of [SQLPlay](https://github.com/Yogesh0627/sqlplay) with recent enhancements for improved database management and deployment.
+SQLPlay Live is an in-browser SQL playground with sample and user-saved databases.
 
 [![npm version](https://img.shields.io/npm/v/sqlplay.svg)](https://www.npmjs.com/package/sqlplay)
-[![license](https://img.shields.io/npm/l/sqlplay.svg)](https://github.com/Yogesh0627/sqlplay/blob/main/LICENSE)
+[![license](https://img.shields.io/npm/l/sqlplay.svg)](LICENSE)
 [![node](https://img.shields.io/node/v/sqlplay.svg)](https://nodejs.org)
 
 An **H2-Console-style SQL playground for JavaScript.** Practice SQL against a real in-memory **SQLite** database that runs **100% in your browser** — no server, no database install, no setup.
 
-**🚀 Live demo: [sqlplay-live.github.io](https://luisfff.github.io/sqlplay-live/)**  ·  **📦 [npm](https://www.npmjs.com/package/sqlplay)**  ·  **💻 [Original Repo](https://github.com/Yogesh0627/sqlplay)**
+**🚀 Live demo: [sqlplay-live.github.io](https://luisfff.github.io/sqlplay-live/)**  ·  **📦 [npm](https://www.npmjs.com/package/sqlplay)**  ·  **💻 [GitHub](https://github.com/luisfff/sqlplay-live)**
 
 Java has the H2 Console for this. JavaScript didn't have a comparable zero-setup SQL practice console — SQLPlay fills that gap by putting a friendly UI on top of [sql.js](https://github.com/sql-js/sql.js).
 
-![SQLPlay console](https://raw.githubusercontent.com/Yogesh0627/sqlplay/main/docs/screenshot-playground.png)
+![SQLPlay console](docs/screenshot-playground.png)
 
 ---
 
@@ -164,7 +164,7 @@ app.use("/db-console", sqlplay({
 app.listen(3000); // open http://localhost:3000/db-console
 ```
 
-![Backend server console](https://raw.githubusercontent.com/Yogesh0627/sqlplay/main/docs/screenshot-server.png)
+![Backend server console](docs/screenshot-server.png)
 
 Keep your schema and seed SQL in a folder, and SQLPlay builds the database from it on startup — edit, restart, query:
 
@@ -199,10 +199,10 @@ Engine-specific syntax from other databases (H2's `MERGE` / `SELECT TOP`, T-SQL,
 
 ## Documentation
 
-- **[User Guide](https://github.com/Yogesh0627/sqlplay/blob/main/docs/USER_GUIDE.md)** — every feature, data lifecycle, dialect, troubleshooting
-- **[Architecture](https://github.com/Yogesh0627/sqlplay/blob/main/docs/ARCHITECTURE.md)** — engine, delivery modes, build system, trade-offs
-- **[Deployment](https://github.com/Yogesh0627/sqlplay/blob/main/docs/DEPLOY.md)** — npm publish, static hosting, backend, security, CI
-- **[Interview Prep](https://github.com/Yogesh0627/sqlplay/blob/main/docs/INTERVIEW.md)** — pitch, deep-dive Q&A, edge cases
+- **[User Guide](docs/USER_GUIDE.md)** — every feature, data lifecycle, dialect, troubleshooting
+- **[Architecture](docs/ARCHITECTURE.md)** — engine, delivery modes, build system, trade-offs
+- **[Deployment](docs/DEPLOY.md)** — npm publish, static hosting, backend, security, CI
+- **[Interview Prep](docs/INTERVIEW.md)** — pitch, deep-dive Q&A, edge cases
 
 ---
 
@@ -210,7 +210,7 @@ Engine-specific syntax from other databases (H2's `MERGE` / `SELECT TOP`, T-SQL,
 
 The console is a static web app (React + Vite). All SQL executes client-side in sql.js, so the database lives entirely in browser memory — refresh to reset, exactly like an H2 in-memory database.
 
-The same core is packaged four ways from one codebase — CLI, headless library, React component, and Express middleware — by making the WASM loader injectable. See [ARCHITECTURE.md](https://github.com/Yogesh0627/sqlplay/blob/main/docs/ARCHITECTURE.md).
+The same core is packaged four ways from one codebase — CLI, headless library, React component, and Express middleware — by making the WASM loader injectable. See [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
@@ -234,19 +234,11 @@ npm run docs:er    # regenerate the ER-diagram SVGs in docs/
   - **Deployed to:** [https://luisfff.github.io/sqlplay-live/](https://luisfff.github.io/sqlplay-live/)
   - **One-time setup:** Pages must be switched to **Settings → Pages → Source: GitHub Actions** before the deploy job can succeed.
 - **E2E is not in CI on purpose.** `e2e.mjs` needs Playwright's Chromium installed and a built `dist/` served by the CLI. It also writes screenshots into `docs/`, so running it in CI as-is would rewrite files in the repo. It can be added later as a separate job.
-- `package.json` still has `homepage: https://sqlplay.vercel.app/`. Update it if Pages becomes the canonical URL.
 
 ---
 
 ## License
 
-[MIT](https://github.com/Yogesh0627/sqlplay/blob/main/LICENSE)
+[MIT](LICENSE)
 
 ---
-
-## Original Author
-
-**Yogesh Chauhan**
-
-- GitHub: [@Yogesh0627](https://github.com/Yogesh0627)
-- LinkedIn: [yogeshchauhan-dev](https://www.linkedin.com/in/yogeshchauhan-dev/)
