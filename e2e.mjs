@@ -51,6 +51,11 @@ try {
   // --- Playground: default Tasks dataset loads + starter query runs ---
   await page.waitForSelector(".schema-tree", { timeout: 15000 });
   await ready();
+  const footer = page.locator("footer.statusbar");
+  assert.equal(await footer.locator(".footer-credit, a").count(), 0);
+  assert.doesNotMatch(await footer.innerText(), /built\s+by/i);
+  assert.ok((await footer.getByRole("status").innerText()).trim());
+  ok("Footer retains database status without author credit");
   assert.equal(await page.locator(".controls select").inputValue(), "tasks");
   const starter = await page.locator(".cm-content").innerText();
   assert.match(starter, /LEFT JOIN user/);
