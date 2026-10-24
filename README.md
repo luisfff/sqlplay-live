@@ -1,253 +1,79 @@
 # SQLPlay Live
 
-SQLPlay Live is an in-browser SQL playground with sample and user-saved databases.
+SQLPlay Live is a website for learning and practicing SQL, the language used to
+ask questions about data. You can explore sample data, write a question, and see
+the results in your browser. You do not need to install anything to get started.
 
-[![npm version](https://img.shields.io/npm/v/sqlplay.svg)](https://www.npmjs.com/package/sqlplay)
-[![license](https://img.shields.io/npm/l/sqlplay.svg)](LICENSE)
-[![node](https://img.shields.io/node/v/sqlplay.svg)](https://nodejs.org)
+**Open the [SQLPlay Live website](https://luisfff.github.io/sqlplay-live/).**
 
-An **H2-Console-style SQL playground for JavaScript.** Practice SQL against a real in-memory **SQLite** database that runs **100% in your browser** — no server, no database install, no setup.
+## Get started
 
-**🚀 Live demo: [sqlplay-live.github.io](https://luisfff.github.io/sqlplay-live/)**  ·  **📦 [npm](https://www.npmjs.com/package/sqlplay)**  ·  **💻 [GitHub](https://github.com/luisfff/sqlplay-live)**
+1. Open the website.
+2. Choose **Playground** to explore a dataset, or **Challenges** to practice a
+   question.
+3. Select a dataset or challenge, then follow the instructions on screen.
 
-Java has the H2 Console for this. JavaScript didn't have a comparable zero-setup SQL practice console — SQLPlay fills that gap by putting a friendly UI on top of [sql.js](https://github.com/sql-js/sql.js).
+The Playground starts with the **Tasks** dataset. It is a good place to look
+around before trying a challenge.
 
-![SQLPlay console](docs/screenshot-playground.png)
+## Explore datasets
 
----
+A dataset is a collection of related tables. Tables organize information into
+rows and columns, like a spreadsheet.
 
-## Recent Updates
+In **Playground**, use the **Dataset** menu to choose a dataset. The table list
+shows the available tables and fields. Click a table name to add a starter query
+to the editor.
 
-This fork includes the following enhancements:
+You can write a SQL query in the editor and select **Run** to see what it finds.
+For example, a query can ask to see certain rows, combine information from
+tables, or count items.
 
-### 1. **Tasks Database as Default Startup** ([PR #1](https://github.com/luisfff/sqlplay-live/pull/1))
-- The playground starts with the **Tasks** sample database
-- Complete Tasks schema: `user`, `status`, `task`, `tag`, and `task_tag` (many-to-many) tables
-- Foreign keys with `ON DELETE CASCADE` for data integrity
-- Starter query joins tasks with owner and status information
+## Use datasets for challenges
 
-### 2. **Reset Database Functionality** ([PR #2](https://github.com/luisfff/sqlplay-live/pull/2))
-- New **↺ Reset DB** toolbar button with two safe reset modes:
-  - **Reset current dataset:** reload the selected sample seed or saved snapshot
-  - **Reset to Tasks database:** always create fresh Tasks data and restore the starter query
-- Confirmation dialogs prevent accidental data loss
-- Saved datasets, query history, and challenge progress are preserved
+Each challenge has a question to answer using data. Select **Challenges** and
+choose a question from the list. SQLPlay loads the dataset for that challenge,
+so you can focus on the question rather than setting up the data.
 
-### 3. **CI/CD & Deployment Pipeline** ([PR #3](https://github.com/luisfff/sqlplay-live/pull/3))
-- **GitHub Actions CI** (`.github/workflows/ci.yml`): Automated testing on every PR and push to `main`
-  - Runs `npm ci` → `typecheck` → `build` → `build:lib`
-  - Node 20 with npm cache
-  - Concurrency control with automatic cancellation of superseded runs
-- **GitHub Pages Deployment** (`.github/workflows/deploy-pages.yml`): Automatic production deployment
-  - Builds Vite bundle and deploys `dist/` to GitHub Pages
-  - Separate build and deploy jobs for reliability
-  - Deployment triggered on every push to `main` or manual workflow dispatch
-  - App is deployed to: **[GitHub Pages](https://luisfff.github.io/sqlplay-live/)**
+1. Read the challenge instructions.
+2. Write a query in the editor.
+3. Select **Check answer** to see whether your result matches what the question
+   asks for.
+4. If you get stuck, select **Hint** for a nudge. **Show solution** reveals an
+   example answer you can learn from.
 
----
+Your completed challenges are remembered when you return to the website.
 
-## Quick Start
+## Tips
 
-To run this fork, open a terminal in your checkout of `luisfff/sqlplay-live`:
+- Read the full question before writing your query. Notice which information it
+  asks for and whether the results need to be in a particular order.
+- Check the table list for the names of the tables and fields you can use.
+- If a query does not work, read the message shown on the page and check the
+  spelling of the table and field names.
+- Use **Run** to explore data in Playground, and **Check answer** to submit a
+  challenge answer.
+- Changing datasets or challenges replaces the current work. If you want to
+  keep a query, copy it somewhere before switching.
 
-```bash
-npm ci
-npm run build
-npm start
-```
+## Frequently asked questions
 
-`npm start` serves the local `dist/` build; rebuild and restart after updating
-the source. For development with live updates, use `npm run dev` instead.
+**Do I need to install anything?**
 
-**Still seeing “Built by …”?** `npx sqlplay`, `pnpm dlx sqlplay`, `bunx sqlplay`,
-and a globally installed `sqlplay` run the published npm package, not this fork.
-Use the local commands above or the live demo below to run this fork without
-the author credit. If an older local build is still open, stop its server,
-rebuild, restart, and reload the page.
+No. Open the website in your browser to begin.
 
-Your browser opens to a full SQL console with the **Tasks database** ready to query.
-Shared links still open their specified dataset and query.
+**Can I change or save a dataset?**
 
-In Playground, **Reset current dataset** restores the selected sample's seed or
-the selected saved dataset's snapshot, discarding unsaved database changes.
-**Reset to Tasks database** always creates a fresh Tasks database and restores its
-starter query, regardless of the current dataset or schema. Both ask for confirmation;
-cancel changes nothing. Saved datasets, query history and challenge progress are kept.
+You can explore and make changes in Playground. To keep a changed dataset, use
+**Save dataset**. Saved datasets stay in the browser where you created them.
 
-Or just open the **[live demo](https://luisfff.github.io/sqlplay-live/)**.
+**Where did my changes go?**
 
-### CLI options
+Changes you have not saved may be cleared when you switch datasets or
+challenges, or reload the page. Save a dataset before leaving if you want to
+keep your changes.
 
-```bash
-sqlplay --port 4577    # choose the port
-sqlplay --no-open      # don't open the browser automatically
-sqlplay --help
-```
+**What if my answer is marked incorrect?**
 
----
-
-## Features
-
-### Playground
-
-- **Real SQLite** engine (via WebAssembly) — full SQL: JOINs, subqueries, window functions, recursive CTEs, triggers, JSON functions, UPSERT.
-- **Create your own datasets** — write full DDL (`CREATE TABLE … FOREIGN KEY`), insert data, build relationships, then **Save** it as a named dataset that persists in your browser.
-- **Live schema browser** — tables, columns, PK/NN flags, row counts. Click to insert into the editor.
-- **SQL editor** with syntax highlighting and **schema-aware autocomplete**.
-- **Run selection** — highlight part of a script and only that runs.
-- **Query history** — every executed query is saved locally; click to reload.
-- **ER diagram** — an auto-laid-out entity-relationship diagram of the live schema, with foreign-key edges. Export it as SVG.
-- **Editable data grid** — edit cells, add rows, delete rows inline.
-- **Import CSV / JSON** — drop a file in and it auto-creates a typed table.
-- **Export** result sets to CSV, or the whole database to a `.sqlite` file.
-- **Shareable links** — the dataset and query are encoded in the URL hash, so nothing is sent to a server.
-- **Sample dataset** — Tasks, with the option to create and save your own datasets.
-
-### Challenge Mode
-
-Practice SQL like LeetCode, offline.
-
-- **18 graded problems** (Easy → Medium) for the Tasks database.
-- Write a query, hit **Check answer**, and your result set is compared against the reference solution (order-sensitive where it matters, numeric tolerance for floats).
-- Hints, **Show solution**, and solved-progress tracked locally.
-
-### Everywhere
-
-- **Keyboard-first** — `Ctrl`/`Cmd` + `Enter` runs (or checks) the current query.
-- **Responsive** — works on desktop, tablet, and mobile.
-- **Fully offline.** Nothing leaves your machine.
-
----
-
-## Use it as a Library
-
-```bash
-npm install sqlplay
-```
-
-The SQLite WASM binary is **embedded**, so these work in Node and any bundler (Vite, webpack, Next.js) with **zero configuration**.
-
-### Headless In-Memory Database
-
-Works in Node or the browser.
-
-```js
-import { createDatabase } from "sqlplay";
-
-const db = await createDatabase();
-db.run("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT);");
-db.run("INSERT INTO t (v) VALUES ('hello');");
-
-const result = db.query("SELECT * FROM t;"); // { columns, rows }
-const tables = db.schema();                  // table/column/FK metadata
-const bytes = db.export();                   // a real .sqlite file (Uint8Array)
-```
-
-### Embeddable React Console
-
-Drop the full UI into your app. `react` and `react-dom` are peer dependencies; the CSS is injected automatically.
-
-```jsx
-import { SqlConsole } from "sqlplay/react";
-
-export default function AdminPage() {
-  return <SqlConsole height="600px" />;
-}
-```
-
-### Backend-Served Console (H2-Style)
-
-Mount it as Express/Connect middleware. The database lives in **your Node process**, and the browser console talks to it over an API — exactly the H2 Console model.
-
-```js
-import express from "express";
-import { sqlplay } from "sqlplay/server";
-
-const app = express();
-
-app.use("/db-console", sqlplay({
-  database: ":memory:", // or "./dev.sqlite" (persists)
-  init: "./db",         // build schema + seed from ./db/*.sql on startup
-}));
-
-app.listen(3000); // open http://localhost:3000/db-console
-```
-
-![Backend server console](docs/screenshot-server.png)
-
-Keep your schema and seed SQL in a folder, and SQLPlay builds the database from it on startup — edit, restart, query:
-
-```text
-db/
-  001_schema.sql
-  002_seed.sql
-```
-
-**Options**
-
-| Option | Default | Description |
-| --- | --- | --- |
-| `database` | `":memory:"` | `":memory:"`, or a path to a `.sqlite` file (persists on writes) |
-| `init` | — | Inline SQL, a `.sql` file, or a folder of `*.sql` run in sorted order |
-| `resetOnStart` | `false` | For a file database, rebuild from `init` on every start |
-| `readOnly` | `false` | Reject anything that isn't `SELECT`/`PRAGMA`/`EXPLAIN`/`WITH` |
-| `maxRows` | `1000` | Cap rows returned per result set |
-| `title` | `"SQLPlay — Server Console"` | Header text |
-
-> **Security:** this console executes arbitrary SQL. Mount it on a dev-only or authenticated route, and use `readOnly: true` for anything beyond local development.
-
----
-
-## SQL Dialect
-
-SQLPlay runs the **SQLite** dialect (SQLite 3.49 via [sql.js](https://github.com/sql-js/sql.js)). Standard ANSI SQL — everything you'd practice for interviews and real work — runs as-is.
-
-Engine-specific syntax from other databases (H2's `MERGE` / `SELECT TOP`, T-SQL, PL/pgSQL) is not supported. Use the SQLite equivalent, e.g. `LIMIT` instead of `SELECT TOP`.
-
----
-
-## Documentation
-
-- **[User Guide](docs/USER_GUIDE.md)** — every feature, data lifecycle, dialect, troubleshooting
-- **[Architecture](docs/ARCHITECTURE.md)** — engine, delivery modes, build system, trade-offs
-- **[Deployment](docs/DEPLOY.md)** — npm publish, static hosting, backend, security, CI
-- **[Interview Prep](docs/INTERVIEW.md)** — pitch, deep-dive Q&A, edge cases
-
----
-
-## How It Works
-
-The console is a static web app (React + Vite). All SQL executes client-side in sql.js, so the database lives entirely in browser memory — refresh to reset, exactly like an H2 in-memory database.
-
-The same core is packaged four ways from one codebase — CLI, headless library, React component, and Express middleware — by making the WASM loader injectable. See [ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
----
-
-## Development
-
-```bash
-npm install
-npm run dev        # Vite dev server with hot reload
-npm run build      # produce dist/ (the web app)
-npm run build:lib  # produce dist-lib/ (the npm library)
-npm run build:all  # both
-npm start          # run the CLI against the built dist/
-npm run test:e2e   # Playwright end-to-end tests
-npm run docs:er    # regenerate the ER-diagram SVGs in docs/
-```
-
-### CI & Deployment
-
-- **CI** (`.github/workflows/ci.yml`) runs on every pull request and on pushes to `main`: `npm ci`, `npm run typecheck`, `npm run build`, `npm run build:lib`.
-- **Deployment** (`.github/workflows/deploy-pages.yml`) builds the static site and publishes `dist/` to **GitHub Pages** on every push to `main` (or manually via *Run workflow*).
-  - **Deployed to:** [https://luisfff.github.io/sqlplay-live/](https://luisfff.github.io/sqlplay-live/)
-  - **One-time setup:** Pages must be switched to **Settings → Pages → Source: GitHub Actions** before the deploy job can succeed.
-- **E2E is not in CI on purpose.** `e2e.mjs` needs Playwright's Chromium installed and a built `dist/` served by the CLI. It also writes screenshots into `docs/`, so running it in CI as-is would rewrite files in the repo. It can be added later as a separate job.
-
----
-
-## License
-
-[MIT](LICENSE)
-
----
+Read the challenge again, check that your query uses the right tables and fields,
+and try a hint. Some questions also require results in a specific order.
