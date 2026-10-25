@@ -490,15 +490,27 @@ try {
   assert.equal(await page.evaluate(() => localStorage.getItem("sqlplay.solved.v1")), solvedBeforeReset);
   ok("Challenge behavior and solved progress survive Playground resets");
 
-  // --- Help modal opens and toggles ---
+  // --- Help modal retains console guidance without removed sections ---
   await page.getByRole("button", { name: /Help/ }).click();
   assert.doesNotMatch(await page.locator(".modal-body").innerText(), /Share|\.sqlite|Import/i);
   await page.waitForSelector(".modal", { timeout: 3000 });
-  await page.getByRole("button", { name: "Install & embed" }).click();
   const helpText = await page.locator(".modal-body").innerText();
-  /createDatabase/.test(helpText) && /npx sqlplay/.test(helpText)
-    ? ok("Help modal + Install/embed toggle works")
-    : no("Help modal", helpText.slice(0, 60));
+  assert.doesNotMatch(helpText, /Full manual|USER_GUIDE\.md|install|embed|Keyboard shortcuts|npx sqlplay|createDatabase/i);
+  assert.equal(await page.locator(".modal .help-toggle, .modal .help-foot, .modal .help-keys").count(), 0);
+  assert.deepEqual(await page.locator(".modal h3").allTextContents(), [
+    "Two modes",
+    "Running queries",
+    "Output tabs (Playground)",
+    "Create & save your own dataset",
+    "Export",
+    "Resetting & what persists",
+    "SQL dialect",
+  ]);
+  await page.locator(".modal-close").click();
+  assert.equal(await page.locator(".modal").count(), 0);
+  await page.getByRole("button", { name: /Help/ }).click();
+  assert.equal(await page.locator(".modal-body").innerText(), helpText);
+  ok("Help retains console guidance, omits manual/install/embed/shortcuts areas, and closes/reopens");
 
   await page.screenshot({ path: "docs/e2e-screenshot.png", fullPage: false });
   ok("Captured screenshot -> docs/e2e-screenshot.png");
